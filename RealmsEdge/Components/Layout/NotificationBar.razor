@@ -1,0 +1,169 @@
+﻿@using RealmsEdge.Shared.Enums
+@using RealmsEdge.Shared.Services
+@using RealmsEdge.Shared.Models.Session
+@inject GameStateManager GameManager
+@implements IDisposable
+
+<div class="game-footer">
+
+    <!-- Left — State Display -->
+    <div class="footer-left">
+        <span class="footer-state">
+            @GetStateDisplay()
+        </span>
+        @if (_session?.HasUnsavedChanges == true)
+        {
+            <span class="footer-unsaved"
+                  title="Unsaved changes">●</span>
+        }
+    </div>
+
+    <!-- Centre — Action Buttons -->
+    <div class="footer-centre">
+        @if (ShowWorldMap)
+        {
+            <button class="footer-btn"
+                    @onclick="GoToWorldMap"
+                    title="World Map">
+                🗺️
+            </button>
+        }
+        @if (ShowQuestJournal)
+        {
+            <button class="footer-btn
+                @HasReadyQuests ? "footer-btn-pulse" : "")"
+                    @onclick="GoToQuestJournal"
+                    title="Quest Journal">
+                📜
+            </button>
+        }
+        @if (ShowCharacterSheet)
+        {
+            <button class="footer-btn"
+                    @onclick="GoToCharacterSheet"
+                    title="Character Sheet">
+                👤
+            </button>
+        }
+        @if (ShowRest)
+        {
+            <button class="footer-btn"
+                    @onclick="TakeShortRest"
+                    title="Short Rest">
+                🏕️
+            </button>
+        }
+        @if (ShowPause)
+        {
+            <button class="footer-btn"
+                    @onclick="Pause"
+                    title="Pause">
+                ⏸️
+            </button>
+        }
+    </div>
+
+    <!-- Right — Save Status -->
+    <div class="footer-right">
+        <span class="footer-save">
+            @(_session?.SaveStatusDisplay ?? "")
+        </span>
+    </div>
+
+</div>
+
+
+@code {
+    private GameSession? _session;
+
+    private bool HasReadyQuests => false;
+        // Will be wired to QuestService later
+
+    private bool ShowWorldMap =>
+        GameManager.CurrentState ==
+            GameState.Exploring;
+
+    private bool ShowQuestJournal =>
+        GameManager.CurrentState ==
+            GameState.Exploring ||
+        GameManager.CurrentState ==
+            GameState.WorldMap;
+
+    private bool ShowCharacterSheet =>
+        GameManager.CurrentState ==
+            GameState.Exploring ||
+        GameManager.CurrentState ==
+            GameState.WorldMap;
+
+    private bool ShowRest =>
+        GameManager.CurrentState ==
+            GameState.Exploring &&
+        GameManager.HasSession &&
+        GameManager.Session.IsInSafeZone;
+
+    private bool ShowPause =>
+        GameManager.CurrentState !=
+            GameState.Paused &&
+        GameManager.CurrentState !=
+            GameState.MainMenu;
+
+    protected override void OnInitialized()
+    {
+        GameManager.OnStateChanged   +=
+            HandleStateChanged;
+        GameManager.OnSessionUpdated +=
+            HandleSessionUpdated;
+        RefreshData();
+    }
+
+    private void RefreshData()
+    {
+        if (GameManager.HasSession)
+            _session = GameManager.Session;
+    }
+
+    private void HandleStateChanged()
+    {
+        RefreshData();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void HandleSessionUpdated()
+    {
+        RefreshData();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private string GetStateDisplay() =>
+        GameManager.HasSession
+            ? GameManager.Session.StateDisplay
+            : string.Empty;
+
+    private void GoToWorldMap() =>
+        GameManager.TransitionTo(
+            GameState.WorldMap);
+
+    private void GoToQuestJournal() =>
+        GameManager.TransitionTo(
+            GameState.QuestJournal);
+
+    private void GoToCharacterSheet() =>
+        GameManager.TransitionTo(
+            GameState.CharacterSheet);
+
+    private async void TakeShortRest()
+    {
+        await GameManager.TakeShortRest();
+    }
+
+    private void Pause() =>
+        GameManager.Pause();
+
+    public void Dispose()
+    {
+        GameManager.OnStateChanged   -=
+            HandleStateChanged;
+        GameManager.OnSessionUpdated -=
+            HandleSessionUpdated;
+    }
+}

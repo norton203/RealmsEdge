@@ -1,0 +1,260 @@
+﻿/* ========================================
+   REALM'S EDGE — Design System
+   Dark Fantasy + Old Parchment Theme
+   ======================================== */
+
+:root {
+    /* ── Core Palette ── */
+    --stone-darkest: #0a0a0f;
+    --stone-dark: #111118;
+    --stone-mid: #1a1a2e;
+    --stone-light: #252540;
+    --stone-lighter: #2e2e50;
+    /* ── Parchment ── */
+    --parchment-dark: #8B7355;
+    --parchment-mid: #B0A080;
+    --parchment-light: #D4C9A8;
+    --parchment-pale: #E8E0C8;
+    --parchment-cream: #F5EED8;
+    /* ── Gold Accents ── */
+    --gold-dark: #8B6914;
+    --gold-mid: #C8960C;
+    --gold-bright: #F0C040;
+    --gold-pale: #F8E090;
+    /* ── Blood & Fire ── */
+    --blood-dark: #5C1010;
+    --blood-mid: #8B1515;
+    --fire-mid: #C0430A;
+    --fire-bright: #E05010;
+    /* ── Status Colours ── */
+    --health-full: #2d8a2d;
+    --health-mid: #8a7a2d;
+    --health-low: #8a2d2d;
+    --mana-colour: #2d4a8a;
+    --stamina-colour: #6a4a2d;
+    /* ── Rarity Colours ── */
+    --rarity-common: #aaaaaa;
+    --rarity-uncommon: #00aa00;
+    --rarity-rare: #0070dd;
+    --rarity-epic: #a335ee;
+    --rarity-legendary: #ff8000;
+    --rarity-artifact: #e6cc80;
+    /* ── Typography ── */
+    --font-title: 'Cinzel', 'MedievalSharp', serif;
+    --font-body: 'IM Fell English', 'Georgia', serif;
+    --font-ui: 'Georgia', serif;
+    --font-mono: 'Courier New', monospace;
+    /* ── Sizing ── */
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 20px;
+    /* ── Shadows ── */
+    --shadow-sm: 0 2px 4px rgba(0,0,0,0.4);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.6);
+    --shadow-lg: 0 8px 24px rgba(0,0,0,0.8);
+    --shadow-gold: 0 0 12px rgba(240,192,64,0.4);
+    --shadow-blood: 0 0 12px rgba(192,67,10,0.4);
+    /* ── Borders ── */
+    --border-stone: 1px solid #2e2e50;
+    --border-gold: 1px solid #f0c040;
+    --border-gold-dim: 1px solid #8B6914;
+    --border-parchment: 1px solid #8B7355;
+    /* ── Transitions ── */
+    --transition-fast: 0.15s ease;
+    --transition-mid: 0.3s ease;
+    --transition-slow: 0.6s ease;
+    /* ── Z-Index Scale ── */
+    --z-base: 1;
+    --z-overlay: 100;
+    --z-modal: 200;
+    --z-toast: 300;
+    --z-tooltip: 400;
+}
+
+/* ── Global Reset ── */
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html, body {
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    background-color: var(--stone-darkest);
+    color: var(--parchment-light);
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* ── Scrollbars ── */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--stone-dark);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--gold-dark);
+    border-radius: 3px;
+}
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: var(--gold-mid);
+    }
+
+/* ── Typography Scale ── */
+h1, h2, h3, h4, h5 {
+    font-family: var(--font-title);
+    color: var(--gold-bright);
+    letter-spacing: 0.05em;
+    line-height: 1.2;
+}
+
+h1 {
+    font-size: 2rem;
+}
+
+h2 {
+    font-size: 1.5rem;
+}
+
+h3 {
+    font-size: 1.25rem;
+}
+
+h4 {
+    font-size: 1.1rem;
+}
+
+h5 {
+    font-size: 1rem;
+}
+
+p {
+    font-family: var(--font-body);
+    color: var(--parchment-light);
+    margin-bottom: 0.75rem;
+}
+
+/* ── Loading Screen ── */
+.realm-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    background: var(--stone-darkest);
+    gap: 1rem;
+}
+
+.realm-loading-emblem {
+    font-size: 4rem;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+.realm-loading-title {
+    font-family: var(--font-title);
+    font-size: 2.5rem;
+    color: var(--gold-bright);
+    text-shadow: var(--shadow-gold);
+    letter-spacing: 0.1em;
+}
+
+.realm-loading-text {
+    font-family: var(--font-body);
+    font-style: italic;
+    color: var(--parchment-mid);
+    font-size: 1rem;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    50% {
+        transform: scale(1.1);
+        opacity: 0.8;
+    }
+}
+
+/* ── Utility Classes ── */
+.text-gold {
+    color: var(--gold-bright);
+}
+
+.text-parchment {
+    color: var(--parchment-light);
+}
+
+.text-dim {
+    color: var(--parchment-mid);
+}
+
+.text-danger {
+    color: #ff4444;
+}
+
+.text-success {
+    color: #44ff44;
+}
+
+.text-warning {
+    color: var(--gold-bright);
+}
+
+.text-italic {
+    font-style: italic;
+}
+
+.text-center {
+    text-align: center;
+}
+
+.text-small {
+    font-size: 0.8rem;
+}
+
+.divider-gold {
+    border: none;
+    border-top: 1px solid var(--gold-dark);
+    margin: 1rem 0;
+    opacity: 0.6;
+}
+
+.divider-stone {
+    border: none;
+    border-top: 1px solid var(--stone-lighter);
+    margin: 0.75rem 0;
+}
+
+/* ── Blazor Error UI ── */
+#blazor-error-ui {
+    background: var(--blood-dark);
+    bottom: 0;
+    box-shadow: 0 -1px 0 var(--fire-mid);
+    color: var(--parchment-pale);
+    display: none;
+    font-family: var(--font-ui);
+    left: 0;
+    padding: 0.6rem 1.25rem 0.7rem;
+    position: fixed;
+    width: 100%;
+    z-index: var(--z-toast);
+}
+
+    #blazor-error-ui .dismiss {
+        cursor: pointer;
+        position: absolute;
+        right: 0.75rem;
+        top: 0.5rem;
+    }

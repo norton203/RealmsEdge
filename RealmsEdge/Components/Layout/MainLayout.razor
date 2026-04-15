@@ -1,0 +1,187 @@
+﻿@page "/"
+@using RealmsEdge.Shared.Enums
+@using RealmsEdge.Shared.Services
+@inject GameStateManager GameManager
+
+<div class="menu-shell">
+
+    <!-- Background Particles -->
+    <div class="menu-particles">
+        @for (int i = 0; i < 12; i++)
+        {
+            <div class="particle particle-@i"></div>
+        }
+    </div>
+
+    <!-- Title Block -->
+    <div class="menu-title-block">
+        <div class="menu-emblem">⚔️</div>
+        <h1 class="menu-title">Realm's Edge</h1>
+        <div class="menu-subtitle">
+            <span class="menu-subtitle-line">
+                ── Where Legends Are Forged ──
+            </span>
+        </div>
+    </div>
+
+    <!-- Main Menu Buttons -->
+    <div class="menu-buttons">
+        <button class="menu-btn menu-btn-primary"
+                @onclick="NewGame">
+            <span class="menu-btn-icon">⚔️</span>
+            <span class="menu-btn-text">New Game</span>
+            <span class="menu-btn-arrow">›</span>
+        </button>
+
+        <button class="menu-btn"
+                @onclick="ContinueGame"
+                disabled="@(!HasSavedGame)">
+            <span class="menu-btn-icon">📖</span>
+            <span class="menu-btn-text">Continue</span>
+            <span class="menu-btn-arrow">›</span>
+        </button>
+
+        <button class="menu-btn"
+                @onclick="SelectCharacter">
+            <span class="menu-btn-icon">👤</span>
+            <span class="menu-btn-text">
+                Characters
+            </span>
+            <span class="menu-btn-arrow">›</span>
+        </button>
+
+        <button class="menu-btn"
+                @onclick="ShowDiceRoller">
+            <span class="menu-btn-icon">🎲</span>
+            <span class="menu-btn-text">
+                Dice Roller
+            </span>
+            <span class="menu-btn-arrow">›</span>
+        </button>
+
+        <button class="menu-btn menu-btn-danger"
+                @onclick="ShowCredits">
+            <span class="menu-btn-icon">📜</span>
+            <span class="menu-btn-text">Credits</span>
+            <span class="menu-btn-arrow">›</span>
+        </button>
+    </div>
+
+    <!-- Version Footer -->
+    <div class="menu-footer">
+        <span class="menu-version">
+            Realm's Edge · v0.1 Alpha
+        </span>
+        <span class="menu-footer-divider">·</span>
+        <span class="menu-tagline">
+            Fate favours the bold
+        </span>
+    </div>
+
+    <!-- Dice Roller Panel -->
+    @if (_showDice)
+    {
+        <div class="menu-overlay"
+             @onclick="HideDiceRoller">
+            <div class="menu-panel paper"
+                 @onclick:stopPropagation="true">
+                <h2>🎲 Dice Roller</h2>
+                <hr />
+                <DiceRoller
+                    ShowHistory="true"
+                    ShowRollButton="true" />
+                <div style="margin-top:1rem;
+                            text-align:center;">
+                    <button class="btn-parchment"
+                            @onclick="HideDiceRoller">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Credits Panel -->
+    @if (_showCredits)
+    {
+        <div class="menu-overlay"
+             @onclick="HideCredits">
+            <div class="menu-panel paper"
+                 @onclick:stopPropagation="true">
+                <h2 class="text-center">
+                    📜 Credits
+                </h2>
+                <hr />
+                <div class="credits-content">
+                    <p class="text-center text-italic">
+                        Built with ⚔️ and 🎲
+                    </p>
+                    <div class="divider-ornate">✦</div>
+                    <p>
+                        <strong>Realm's Edge</strong>
+                        is a dark fantasy RPG inspired
+                        by the classics — L.O.R.D,
+                        Baldur's Gate, D&D and
+                        Warhammer.
+                    </p>
+                    <div class="divider-ornate">✦</div>
+                    <p class="text-small">
+                        Built with .NET MAUI Blazor ·
+                        C# · SVG · CSS Filters
+                    </p>
+                    <p class="text-small text-center">
+                        Sound effects from OpenGameArt
+                    </p>
+                </div>
+                <div style="margin-top:1rem;
+                            text-align:center;">
+                    <button class="btn-parchment"
+                            @onclick="HideCredits">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
+
+</div>
+
+
+@code {
+    private bool _showDice    = false;
+    private bool _showCredits = false;
+
+    private bool HasSavedGame => false;
+        // Will connect to save system later
+
+    protected override void OnInitialized()
+    {
+        // Start a session if none exists
+        if (!GameManager.HasSession)
+            GameManager.StartNewSession();
+    }
+
+    private void NewGame() =>
+        GameManager.TransitionTo(
+            GameState.CharacterCreate);
+
+    private void ContinueGame() =>
+        GameManager.TransitionTo(
+            GameState.CharacterSelect);
+
+    private void SelectCharacter() =>
+        GameManager.TransitionTo(
+            GameState.CharacterSelect);
+
+    private void ShowDiceRoller() =>
+        _showDice = true;
+
+    private void HideDiceRoller() =>
+        _showDice = false;
+
+    private void ShowCredits() =>
+        _showCredits = true;
+
+    private void HideCredits() =>
+        _showCredits = false;
+}

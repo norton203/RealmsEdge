@@ -1,0 +1,199 @@
+﻿/*Global Styles for Layout */
+
+.realm-shell {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+    position: relative;
+}
+
+/* ── Backgrounds ── */
+.realm-background {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    transition: background var(--transition-slow);
+}
+
+    .realm-background.bg-menu {
+        background: radial-gradient( ellipse at 50% 30%, #1a1a3a 0%, #0a0a1a 60%, #000005 100% );
+    }
+
+    .realm-background.bg-world {
+        background: radial-gradient( ellipse at 20% 80%, #1a2a1a 0%, #0f1a0f 40%, #080d08 100% );
+    }
+
+    .realm-background.bg-dungeon {
+        background: radial-gradient( ellipse at 50% 50%, #1a1010 0%, #0d0808 50%, #050303 100% );
+    }
+
+    .realm-background.bg-combat {
+        background: radial-gradient( ellipse at 50% 50%, #2a0808 0%, #150404 50%, #080202 100% );
+    }
+
+    .realm-background.bg-parchment {
+        background: radial-gradient( ellipse at 30% 30%, #2a2010 0%, #1a1508 50%, #0d0a05 100% );
+    }
+
+.realm-background-overlay {
+    position: absolute;
+    inset: 0;
+    background-image: repeating-linear-gradient( 0deg, transparent, transparent 3px, rgba(255,255,255,0.008) 3px, rgba(255,255,255,0.008) 4px );
+    pointer-events: none;
+}
+
+/* ── Header ── */
+.realm-header {
+    position: relative;
+    z-index: var(--z-overlay);
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--stone-lighter);
+    background: linear-gradient( 180deg, rgba(10,10,20,0.98) 0%, rgba(10,10,20,0.90) 100% );
+    backdrop-filter: blur(4px);
+}
+
+/* ── Main Content ── */
+.realm-main {
+    position: relative;
+    z-index: var(--z-base);
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+    .realm-main.main-fullscreen {
+        overflow: hidden;
+    }
+
+    .realm-main.main-padded {
+        padding: 1rem;
+    }
+
+/* ── Footer ── */
+.realm-footer {
+    position: relative;
+    z-index: var(--z-overlay);
+    flex-shrink: 0;
+    border-top: 1px solid var(--stone-lighter);
+    background: linear-gradient( 0deg, rgba(10,10,20,0.98) 0%, rgba(10,10,20,0.90) 100% );
+    backdrop-filter: blur(4px);
+}
+
+/* ── Notifications ── */
+.realm-notifications {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: var(--z-toast);
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-width: 320px;
+}
+
+/* ── Pause Overlay ── */
+.realm-pause-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-modal);
+    background: rgba(0,0,0,0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+    animation: fadeIn 0.2s ease;
+}
+
+.realm-pause-panel {
+    min-width: 280px;
+    max-width: 380px;
+    width: 90%;
+    padding: 2rem;
+    animation: slideUp 0.3s ease;
+}
+
+    .realm-pause-panel h2 {
+        margin-bottom: 0;
+    }
+
+.realm-pause-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+}
+
+    .realm-pause-actions .btn-realm,
+    .realm-pause-actions .btn-ghost {
+        width: 100%;
+        text-align: center;
+    }
+
+/* ── Loading Overlay ── */
+.realm-loading-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-modal);
+    background: rgba(0,0,0,0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(2px);
+    animation: fadeIn 0.2s ease;
+}
+
+.realm-loading-spinner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+
+.spinner-emblem {
+    font-size: 3rem;
+    animation: spin 2s linear infinite;
+}
+
+.spinner-text {
+    font-family: var(--font-body);
+    font-style: italic;
+    color: var(--parchment-mid);
+    font-size: 1rem;
+}
+
+/* ── Animations ── */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+

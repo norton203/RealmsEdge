@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Realm's Edge</title>
+    <base href="/" />
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=MedievalSharp&family=IM+Fell+English:ital@0;1&family=Cinzel:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <!-- Game Styles -->
+    <link rel="stylesheet" href="css/app.css" />
+    <link rel="stylesheet" href="css/theme.css" />
+    <link rel="stylesheet" href="css/paper.css" />
+    <link rel="stylesheet" href="css/dice.css" />
+    <link rel="stylesheet" href="RealmsEdge.Maui.styles.css" />
+</head>
+
+<body>
+    <!-- SVG Filters — hidden, used by CSS -->
+    <svg width="0" height="0"
+         style="position:absolute;overflow:hidden">
+        <defs>
+            <!-- Dice gradient -->
+            <linearGradient id="diceGrad"
+                            x1="0%" y1="0%"
+                            x2="100%" y2="100%">
+                <stop offset="0%"
+                      style="stop-color:#f0c040;
+                           stop-opacity:0.2" />
+                <stop offset="100%"
+                      style="stop-color:#c0430a;
+                           stop-opacity:0.1" />
+            </linearGradient>
+
+            <!-- Paper crumple effect -->
+            <filter id="crumple-effect"
+                    x="-5%" y="-5%"
+                    width="110%" height="110%"
+                    color-interpolation-filters="sRGB">
+                <feTurbulence type="fractalNoise"
+                              baseFrequency="0.04 0.04"
+                              numOctaves="5"
+                              seed="2"
+                              result="noise" />
+                <feDisplacementMap in="SourceGraphic"
+                                   in2="noise"
+                                   scale="4"
+                                   xChannelSelector="R"
+                                   yChannelSelector="G"
+                                   result="displaced" />
+                <feComposite in="displaced"
+                             in2="SourceGraphic"
+                             operator="in" />
+            </filter>
+
+            <!-- Aged paper texture noise -->
+            <filter id="paper-texture">
+                <feTurbulence type="fractalNoise"
+                              baseFrequency="0.65"
+                              numOctaves="3"
+                              stitchTiles="stitch"
+                              result="noise" />
+                <feColorMatrix type="saturate"
+                               values="0"
+                               result="greyNoise" />
+                <feBlend in="SourceGraphic"
+                         in2="greyNoise"
+                         mode="multiply"
+                         result="blend" />
+                <feComposite in="blend"
+                             in2="SourceGraphic"
+                             operator="in" />
+            </filter>
+
+            <!-- Glow effect for titles -->
+            <filter id="gold-glow">
+                <feGaussianBlur stdDeviation="3"
+                                result="blur" />
+                <feFlood flood-color="#f0c040"
+                         flood-opacity="0.4"
+                         result="color" />
+                <feComposite in="color"
+                             in2="blur"
+                             operator="in"
+                             result="shadow" />
+                <feMerge>
+                    <feMergeNode in="shadow" />
+                    <feMergeNode in="SourceGraphic" />
+                </feMerge>
+            </filter>
+        </defs>
+    </svg>
+
+    <div class="status-bar-safe-area"></div>
+    <div id="app">
+        <div class="realm-loading">
+            <div class="realm-loading-emblem">⚔️</div>
+            <div class="realm-loading-title">
+                Realm's Edge
+            </div>
+            <div class="realm-loading-text">
+                The fates are aligning...
+            </div>
+        </div>
+    </div>
+
+    <div id="blazor-error-ui">
+        An unhandled error has occurred.
+        <a href="" class="reload">Reload</a>
+        <a class="dismiss">🗙</a>
+    </div>
+
+    <!-- Sound Manager -->
+    <script>
+        window.playDiceSound = function () {
+            var audio = new Audio();
+            audio.src = 'sounds/dice-roll.mp3';
+            audio.volume = 0.6;
+            audio.play().catch(function () {
+                audio.src = 'sounds/dice-roll.ogg';
+                audio.play();
+            });
+        };
+    </script>
+
+    <script src="_framework/blazor.webview.js"
+            autostart="false"></script>
+    <script>
+        Blazor.start();
+    </script>
+</body>
+</html>

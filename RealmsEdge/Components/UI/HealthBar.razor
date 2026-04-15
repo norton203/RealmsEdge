@@ -1,0 +1,194 @@
+﻿@using RealmsEdge.Shared.Models.Characters
+
+<div class="health-bar-container @SizeClass">
+
+    @if (ShowLabel)
+    {
+        <div class="health-bar-header">
+            <span class="health-bar-label">
+                @Label
+            </span>
+            <span class="health-bar-value"
+                  style="color:@GetColour()">
+                @Current / @Maximum
+            </span>
+        </div>
+    }
+
+    <div class="health-bar-track">
+        <div class="health-bar-fill"
+             style="width:@GetPercent()%;
+                    background:@GetGradient()">
+        </div>
+        @if (ShowShield && ShieldAmount > 0)
+        {
+            <div class="health-bar-shield"
+                 style="width:@GetShieldPercent()%">
+            </div>
+        }
+    </div>
+
+    @if (ShowNumbers && !ShowLabel)
+    {
+        <div class="health-bar-numbers">
+            <span style="color:@GetColour()">
+                @Current
+            </span>
+            <span class="health-bar-sep">/</span>
+            <span>@Maximum</span>
+        </div>
+    }
+
+</div>
+
+<style>
+    .health-bar-container {
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+        width: 100%;
+    }
+
+    .health-bar-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .health-bar-label {
+        font-family: var(--font-ui);
+        font-size: 0.75rem;
+        color: var(--parchment-mid);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .health-bar-value {
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        font-weight: bold;
+    }
+
+    .health-bar-track {
+        position: relative;
+        background: rgba(0,0,0,0.5);
+        border-radius: 4px;
+        overflow: hidden;
+        border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    /* ── Sizes ── */
+    .bar-sm .health-bar-track { height: 6px;  }
+    .bar-md .health-bar-track { height: 10px; }
+    .bar-lg .health-bar-track { height: 16px; }
+    .bar-xl .health-bar-track { height: 22px; }
+
+    .health-bar-fill {
+        height: 100%;
+        border-radius: 4px;
+        transition: width 0.4s ease;
+        min-width: 2px;
+        max-width: 100%;
+        position: relative;
+    }
+
+    .health-bar-fill::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 40%;
+        background: rgba(255,255,255,0.15);
+        border-radius: 4px 4px 0 0;
+    }
+
+    .health-bar-shield {
+        position: absolute;
+        top: 0;
+        right: 0;
+        height: 100%;
+        background: linear-gradient(
+            90deg,
+            transparent,
+            rgba(100,150,255,0.5)
+        );
+        border-radius: 0 4px 4px 0;
+        border-left: 1px solid
+            rgba(100,150,255,0.8);
+    }
+
+    .health-bar-numbers {
+        display: flex;
+        align-items: center;
+        gap: 0.2rem;
+        font-family: var(--font-mono);
+        font-size: 0.7rem;
+        justify-content: center;
+    }
+
+    .health-bar-sep {
+        color: var(--parchment-dark);
+    }
+</style>
+
+@code {
+    [Parameter] public int Current { get; set; }
+    [Parameter] public int Maximum { get; set; }
+    [Parameter] public string Label { get; set; }
+        = "HP";
+    [Parameter] public bool ShowLabel { get; set; }
+        = true;
+    [Parameter] public bool ShowNumbers { get; set; }
+        = true;
+    [Parameter] public bool ShowShield { get; set; }
+        = false;
+    [Parameter] public int ShieldAmount { get; set; }
+        = 0;
+    [Parameter] public string Size { get; set; }
+        = "md";
+
+    private string SizeClass => $"bar-{Size}";
+
+    private double GetPercent()
+    {
+        if (Maximum <= 0) return 0;
+        return Math.Max(0, Math.Min(100,
+            (double)Current / Maximum * 100));
+    }
+
+    private double GetShieldPercent()
+    {
+        if (Maximum <= 0) return 0;
+        return Math.Max(0, Math.Min(100,
+            (double)ShieldAmount / Maximum * 100));
+    }
+
+    private string GetColour()
+    {
+        var pct = GetPercent();
+        return pct switch
+        {
+            >= 75 => "#44cc44",
+            >= 50 => "#cccc44",
+            >= 25 => "#cc7744",
+            _     => "#cc4444"
+        };
+    }
+
+    private string GetGradient()
+    {
+        var pct = GetPercent();
+        return pct switch
+        {
+            >= 75 => "linear-gradient(90deg," +
+                     "#1a6a1a,#44cc44)",
+            >= 50 => "linear-gradient(90deg," +
+                     "#6a6a1a,#cccc44)",
+            >= 25 => "linear-gradient(90deg," +
+                     "#6a3a1a,#cc7744)",
+            _     => "linear-gradient(90deg," +
+                     "#6a1a1a,#cc4444)"
+        };
+    }
+}

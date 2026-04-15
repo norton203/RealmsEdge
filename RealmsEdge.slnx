@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="RealmsEdge.Shared/RealmsEdge.Shared.csproj" />
+  <Project Path="RealmsEdge/RealmsEdge.Maui.csproj">
+    <Deploy Solution="Debug|*" />
+  </Project>
+</Solution>

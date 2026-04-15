@@ -1,0 +1,52 @@
+﻿@page "/"
+@using RealmsEdge.Shared.Enums
+@using RealmsEdge.Shared.Models
+@using RealmsEdge.Components.UI
+
+<div style="text-align:center; padding:20px;">
+
+    <h1 style="font-family:'Georgia',serif; color:#f0c040; 
+               text-shadow: 0 0 12px rgba(240,192,64,0.5);
+               letter-spacing:3px;">
+        ⚔️ Realm's Edge ⚔️
+    </h1>
+
+    <p style="font-family:'Georgia',serif; color:#aaa; 
+              letter-spacing:1px; margin-bottom:30px;">
+        Fate favours the bold — roll your dice, adventurer
+    </p>
+
+    <DiceRoller AvailableDice="_combatDice"
+                ShowRollButton="true"
+                ShowHistory="true"
+                OnRollComplete="HandleRollComplete" />
+
+    @if (_lastRoll != null)
+    {
+        <div style="margin-top:20px; font-family:'Georgia',serif; 
+                    color:#ccc; font-size:0.9rem;">
+            Last roll: <span style="color:#f0c040">@_lastRoll.RollDescription</span>
+        </div>
+    }
+
+</div>
+
+@code {
+    private DiceRoll? _lastRoll;
+
+    private List<DiceType> _combatDice = new()
+    {
+        DiceType.D4,
+        DiceType.D6,
+        DiceType.D8,
+        DiceType.D10,
+        DiceType.D12,
+        DiceType.D20
+    };
+
+    private void HandleRollComplete(DiceRoll roll)
+    {
+        _lastRoll = roll;
+        StateHasChanged();
+    }
+}

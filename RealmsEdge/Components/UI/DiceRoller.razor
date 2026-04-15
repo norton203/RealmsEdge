@@ -1,0 +1,268 @@
+﻿@using RealmsEdge.Maui.Services
+@using RealmsEdge.Shared.Enums
+@using RealmsEdge.Shared.Models
+@using RealmsEdge.Shared.Services
+@inject DiceService DiceService
+@inject SoundService SoundService
+
+<div class="dice-container">
+    @foreach (var diceType in AvailableDice)
+    {
+        var currentRoll = GetLastRoll(diceType);
+        var isRolling = _rollingDice.Contains(diceType);
+        var diceClass = GetDiceClass(diceType, currentRoll, isRolling);
+
+        <div class="dice-wrapper">
+            <span class="dice-label">@diceType.ToString()</span>
+
+            <svg class="dice @diceClass"
+                 width="64"
+                 height="64"
+                 viewBox="0 0 100 100"
+                 xmlns="http://www.w3.org/2000/svg"
+                 style="width:64px; height:64px; min-width:64px; min-height:64px; max-width:64px; max-height:64px;"
+                 @onclick="() => RollDice(diceType)">
+                @GetDiceSvgBody(diceType, currentRoll)
+            </svg>
+
+            <div class="dice-result @GetResultClass(currentRoll)">
+                @if (currentRoll != null)
+                {
+                    @if (currentRoll.IsCriticalHit)
+                    {
+                        <span>⚔️ CRIT!</span>
+                    }
+                    else if (currentRoll.IsCriticalFail)
+                    {
+                        <span>💀 FAIL!</span>
+                    }
+                    else
+                    {
+                        @currentRoll.Total
+                    }
+                }
+                else
+                {
+                    <span style="color:#555">—</span>
+                }
+            </div>
+
+            <div class="dice-description">
+                @currentRoll?.RollDescription
+            </div>
+        </div>
+    }
+</div>
+
+@if (ShowRollButton)
+{
+    <div style="display:flex; justify-content:center; margin-top:12px;">
+        <button class="btn-roll"
+                disabled="@_isAnyRolling"
+                @onclick="RollAll">
+            🎲 Roll All Dice
+        </button>
+    </div>
+}
+
+@if (ShowHistory && _rollHistory.Any())
+{
+    <div class="roll-history">
+        @foreach (var entry in _rollHistory.AsEnumerable().Reverse())
+        {
+            <div class="roll-history-item @(entry.IsCriticalHit ? "is-crit" : entry.IsCriticalFail ? "is-fail" : "")">
+                [@entry.RolledAt.ToString("HH:mm:ss")] @entry.RollDescription
+            </div>
+        }
+    </div>
+}
+
+@code {
+    // =====================
+    // Parameters
+    // =====================
+
+    [Parameter]
+    public List<DiceType> AvailableDice { get; set; } = new()
+    {
+        DiceType.D4, DiceType.D6, DiceType.D8,
+        DiceType.D10, DiceType.D12, DiceType.D20
+    };
+
+    [Parameter] public bool ShowRollButton { get; set; } = true;
+    [Parameter] public bool ShowHistory { get; set; } = true;
+    [Parameter] public int NumberOfDice { get; set; } = 1;
+    [Parameter] public int Modifier { get; set; } = 0;
+
+    // Fires after any dice roll completes
+    [Parameter] public EventCallback<DiceRoll> OnRollComplete { get; set; }
+
+    // =====================
+    // State
+    // =====================
+
+    private Dictionary<DiceType, DiceRoll> _lastRolls = new();
+    private HashSet<DiceType> _rollingDice = new();
+    private List<DiceRoll> _rollHistory = new();
+    private bool _isAnyRolling => _rollingDice.Any();
+
+    // =====================
+    // Roll Logic
+    // =====================
+
+    private async Task RollDice(DiceType diceType)
+    {
+        if (_rollingDice.Contains(diceType)) return;
+
+        _rollingDice.Add(diceType);
+        StateHasChanged();
+
+        await SoundService.PlayAsync(SoundEffect.DiceRoll);
+        await Task.Delay(800);
+
+        var result = DiceService.Roll(diceType, NumberOfDice, Modifier);
+        _lastRolls[diceType] = result;
+        _rollHistory.Add(result);
+
+        // Play critical sounds
+        if (result.IsCriticalHit)
+            await SoundService.PlayAsync(SoundEffect.CombatCritical);
+        else if (result.IsCriticalFail)
+            await SoundService.PlayAsync(SoundEffect.CombatDeath);
+
+        _rollingDice.Remove(diceType);
+        StateHasChanged();
+
+        await OnRollComplete.InvokeAsync(result);
+    }
+
+    private async Task RollAll()
+    {
+        var tasks = AvailableDice.Select(d => RollDice(d));
+        await Task.WhenAll(tasks);
+    }
+
+    // =====================
+    // Helpers
+    // =====================
+
+    private DiceRoll? GetLastRoll(DiceType diceType)
+        => _lastRolls.TryGetValue(diceType, out var roll) ? roll : null;
+
+    private string GetDiceClass(DiceType diceType, DiceRoll? roll, bool isRolling)
+    {
+        if (isRolling) return "rolling";
+        if (roll?.IsCriticalHit == true) return "critical-hit";
+        if (roll?.IsCriticalFail == true) return "critical-fail";
+        return string.Empty;
+    }
+
+    private string GetResultClass(DiceRoll? roll)
+    {
+        if (roll?.IsCriticalHit == true) return "critical-hit-text";
+        if (roll?.IsCriticalFail == true) return "critical-fail-text";
+        return string.Empty;
+    }
+
+    // =====================
+    // SVG Dice Faces
+    // =====================
+
+    private RenderFragment GetDiceSvgBody(DiceType diceType, DiceRoll? roll) => diceType switch
+    {
+        DiceType.D4 => RenderD4(roll),
+        DiceType.D6 => RenderD6(roll),
+        DiceType.D8 => RenderD8(roll),
+        DiceType.D10 => RenderD10(roll),
+        DiceType.D12 => RenderD12(roll),
+        DiceType.D20 => RenderD20(roll),
+        _ => RenderD6(roll)
+    };
+
+    private RenderFragment RenderD4(DiceRoll? roll) => __builder =>
+    {
+        var label = roll != null ? roll.Total.ToString() : "D4";
+        __builder.AddMarkupContent(0, $@"
+            <polygon points='50,8 95,88 5,88'
+                fill='#1a1a2e' stroke='#c0430a' stroke-width='3'/>
+            <polygon points='50,8 95,88 5,88'
+                fill='url(#diceGrad)' stroke='#f0c040' stroke-width='1.5' opacity='0.3'/>
+            <text x='50' y='72' text-anchor='middle'
+                font-size='22' fill='#f0c040' font-family='Georgia'
+                font-weight='bold'>{label}</text>
+        ");
+    };
+
+    private RenderFragment RenderD6(DiceRoll? roll) => __builder =>
+    {
+        var label = roll != null ? roll.Total.ToString() : "D6";
+        __builder.AddMarkupContent(0, $@"
+            <rect x='10' y='10' width='80' height='80' rx='10'
+                fill='#1a1a2e' stroke='#c0430a' stroke-width='3'/>
+            <rect x='10' y='10' width='80' height='80' rx='10'
+                fill='url(#diceGrad)' stroke='#f0c040' stroke-width='1.5' opacity='0.3'/>
+            <text x='50' y='62' text-anchor='middle'
+                font-size='28' fill='#f0c040' font-family='Georgia'
+                font-weight='bold'>{label}</text>
+        ");
+    };
+
+    private RenderFragment RenderD8(DiceRoll? roll) => __builder =>
+    {
+        var label = roll != null ? roll.Total.ToString() : "D8";
+        __builder.AddMarkupContent(0, $@"
+            <polygon points='50,5 95,50 50,95 5,50'
+                fill='#1a1a2e' stroke='#c0430a' stroke-width='3'/>
+            <polygon points='50,5 95,50 50,95 5,50'
+                fill='url(#diceGrad)' stroke='#f0c040' stroke-width='1.5' opacity='0.3'/>
+            <text x='50' y='58' text-anchor='middle'
+                font-size='24' fill='#f0c040' font-family='Georgia'
+                font-weight='bold'>{label}</text>
+        ");
+    };
+
+    private RenderFragment RenderD10(DiceRoll? roll) => __builder =>
+    {
+        var label = roll != null ? roll.Total.ToString() : "D10";
+        __builder.AddMarkupContent(0, $@"
+            <polygon points='50,5 90,30 95,70 50,95 5,70 10,30'
+                fill='#1a1a2e' stroke='#c0430a' stroke-width='3'/>
+            <polygon points='50,5 90,30 95,70 50,95 5,70 10,30'
+                fill='url(#diceGrad)' stroke='#f0c040' stroke-width='1.5' opacity='0.3'/>
+            <text x='50' y='60' text-anchor='middle'
+                font-size='22' fill='#f0c040' font-family='Georgia'
+                font-weight='bold'>{label}</text>
+        ");
+    };
+
+    private RenderFragment RenderD12(DiceRoll? roll) => __builder =>
+    {
+        var label = roll != null ? roll.Total.ToString() : "D12";
+        __builder.AddMarkupContent(0, $@"
+            <polygon points='50,4 72,18 93,35 93,65 72,82 50,96 28,82 7,65 7,35 28,18'
+                fill='#1a1a2e' stroke='#c0430a' stroke-width='3'/>
+            <polygon points='50,4 72,18 93,35 93,65 72,82 50,96 28,82 7,65 7,35 28,18'
+                fill='url(#diceGrad)' stroke='#f0c040' stroke-width='1.5' opacity='0.3'/>
+            <text x='50' y='60' text-anchor='middle'
+                font-size='22' fill='#f0c040' font-family='Georgia'
+                font-weight='bold'>{label}</text>
+        ");
+    };
+
+    private RenderFragment RenderD20(DiceRoll? roll) => __builder =>
+    {
+        var label = roll != null ? roll.Total.ToString() : "D20";
+        var strokeColor = roll?.IsCriticalHit == true ? "#00ff64"
+                        : roll?.IsCriticalFail == true ? "#ff3232"
+                        : "#c0430a";
+        __builder.AddMarkupContent(0, $@"
+            <polygon points='50,4 78,20 93,48 84,78 60,95 40,95 16,78 7,48 22,20'
+                fill='#1a1a2e' stroke='{strokeColor}' stroke-width='3'/>
+            <polygon points='50,4 78,20 93,48 84,78 60,95 40,95 16,78 7,48 22,20'
+                fill='url(#diceGrad)' stroke='#f0c040' stroke-width='1.5' opacity='0.3'/>
+            <text x='50' y='62' text-anchor='middle'
+                font-size='24' fill='#f0c040' font-family='Georgia'
+                font-weight='bold'>{label}</text>
+        ");
+    };
+}

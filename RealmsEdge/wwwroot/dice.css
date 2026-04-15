@@ -1,0 +1,233 @@
+﻿/* =============================
+   REALMS EDGE - Dice Animations
+   ============================= */
+
+.dice-container {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 16px;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.dice-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    width: 80px;
+    max-width: 80px;
+}
+
+.dice {
+    width: 64px;
+    height: 64px;
+    cursor: pointer;
+    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.5));
+    transition: filter 0.2s ease;
+}
+
+/* =============================
+   Core Dice SVG Styling
+   ============================= */
+
+.dice {
+    width: 80px;
+    height: 80px;
+    cursor: pointer;
+    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.5));
+    transition: filter 0.2s ease;
+}
+
+    .dice:hover {
+        filter: drop-shadow(0 4px 14px rgba(255, 180, 0, 0.7));
+    }
+
+    .dice.rolling {
+        animation: diceRoll 0.8s ease-in-out;
+    }
+
+    .dice.critical-hit {
+        filter: drop-shadow(0 0 12px rgba(0, 255, 100, 0.9));
+        animation: criticalPulse 1s ease-in-out;
+    }
+
+    .dice.critical-fail {
+        filter: drop-shadow(0 0 12px rgba(255, 50, 50, 0.9));
+        animation: criticalPulse 1s ease-in-out;
+    }
+
+/* =============================
+   Roll Animation
+   ============================= */
+
+@keyframes diceRoll {
+    0% {
+        transform: rotate(0deg) scale(1);
+    }
+
+    15% {
+        transform: rotate(-30deg) scale(1.1) translateY(-8px);
+    }
+
+    30% {
+        transform: rotate(25deg) scale(1.15) translateY(-14px);
+    }
+
+    45% {
+        transform: rotate(-20deg) scale(1.1) translateY(-8px);
+    }
+
+    60% {
+        transform: rotate(15deg) scale(1.05) translateY(-4px);
+    }
+
+    75% {
+        transform: rotate(-10deg) scale(1.02) translateY(-2px);
+    }
+
+    90% {
+        transform: rotate(5deg) scale(1.01);
+    }
+
+    100% {
+        transform: rotate(0deg) scale(1);
+    }
+}
+
+/* =============================
+   Critical Hit / Fail Pulse
+   ============================= */
+
+@keyframes criticalPulse {
+    0% {
+        transform: scale(1);
+    }
+
+    20% {
+        transform: scale(1.25);
+    }
+
+    40% {
+        transform: scale(1.1);
+    }
+
+    60% {
+        transform: scale(1.2);
+    }
+
+    80% {
+        transform: scale(1.05);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* =============================
+   Result Display
+   ============================= */
+
+.dice-result {
+    font-size: 1.1rem;
+    font-weight: bold;
+    font-family: 'Georgia', serif;
+    color: #f0c040;
+    min-height: 1.6rem;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+    .dice-result.critical-hit-text {
+        color: #00ff64;
+        font-size: 1.6rem;
+    }
+
+    .dice-result.critical-fail-text {
+        color: #ff3232;
+        font-size: 1.6rem;
+    }
+
+.dice-description {
+    font-size: 0.75rem;
+    color: #888;
+    font-family: 'Georgia', serif;
+    text-align: center;
+    max-width: 200px;
+    min-height: 1.2rem;
+}
+
+/* =============================
+   Roll Button
+   ============================= */
+
+.btn-roll {
+    background: linear-gradient(135deg, #7b2d00, #c0430a);
+    color: #f5d97e;
+    border: 2px solid #f0c040;
+    border-radius: 6px;
+    padding: 8px 20px;
+    font-family: 'Georgia', serif;
+    font-size: 0.95rem;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+}
+
+    .btn-roll:hover {
+        background: linear-gradient(135deg, #c0430a, #e05010);
+        box-shadow: 0 0 12px rgba(240, 192, 64, 0.5);
+        transform: translateY(-1px);
+    }
+
+    .btn-roll:active {
+        transform: translateY(1px);
+        box-shadow: none;
+    }
+
+    .btn-roll:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+/* =============================
+   Roll History Log
+   ============================= */
+
+.roll-history {
+    margin-top: 20px;
+    max-height: 180px;
+    overflow-y: auto;
+    border: 1px solid #444;
+    border-radius: 6px;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.3);
+    width: 100%;
+}
+
+.roll-history-item {
+    font-size: 0.78rem;
+    font-family: 'Georgia', serif;
+    color: #ccc;
+    padding: 3px 0;
+    border-bottom: 1px solid #333;
+}
+
+    .roll-history-item:last-child {
+        border-bottom: none;
+    }
+
+    .roll-history-item.is-crit {
+        color: #00ff64;
+    }
+
+    .roll-history-item.is-fail {
+        color: #ff3232;
+    }

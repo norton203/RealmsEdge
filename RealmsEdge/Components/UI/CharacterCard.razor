@@ -1,0 +1,474 @@
+﻿@using RealmsEdge.Shared.Enums
+@using RealmsEdge.Shared.Models.Characters
+
+<div class="char-card @GetCardClass() @(IsSelected ? "char-card-selected" : "")"
+     @onclick="HandleClick">
+
+    <!-- Card Header -->
+    <div class="char-card-header">
+        <div class="char-card-portrait">
+            @GetClassEmoji()
+        </div>
+        <div class="char-card-identity">
+            <div class="char-card-name">
+                @Character.FullTitle
+            </div>
+            <div class="char-card-sub">
+                @Character.Race @Character.Class
+            </div>
+            <div class="char-card-level">
+                Level @Character.Level
+                <span class="char-card-alignment">
+                    · @GetAlignmentShort()
+                </span>
+            </div>
+        </div>
+        @if (ShowTeamIndicator)
+        {
+            <div class="char-card-team
+                @(IsEnemy ? "team-enemy" : "team-player")">
+                @(IsEnemy ? "👹" : "⚔️")
+            </div>
+        }
+    </div>
+
+    <!-- Health Bar -->
+    <div class="char-card-bars">
+        <HealthBar
+            Current="@Character.Stats.CurrentHitPoints"
+            Maximum="@Character.Stats.MaxHitPoints"
+            Label="HP"
+            ShowLabel="true"
+            Size="sm" />
+
+        @if (Character.Stats.MaxMana > 0)
+        {
+            <div class="char-card-mana">
+                <span class="char-card-bar-label">
+                    MP
+                </span>
+                <div class="health-bar-track bar-sm">
+                    <div class="health-bar-fill"
+                         style="width:@GetManaPercent()%;
+                                background:linear-gradient(
+                                    90deg,#1a2a6a,#4a7aff)">
+                    </div>
+                </div>
+                <span class="char-card-bar-value">
+                    @Character.Stats.CurrentMana
+                </span>
+            </div>
+        }
+
+        @if (Character.Stats.MaxStamina > 0)
+        {
+            <div class="char-card-stamina">
+                <span class="char-card-bar-label">
+                    SP
+                </span>
+                <div class="health-bar-track bar-sm">
+                    <div class="health-bar-fill"
+                         style="width:@GetStaminaPercent()%;
+                                background:linear-gradient(
+                                    90deg,#3a2a1a,#cc8844)">
+                    </div>
+                </div>
+                <span class="char-card-bar-value">
+                    @Character.Stats.CurrentStamina
+                </span>
+            </div>
+        }
+    </div>
+
+    <!-- Stats Row -->
+    @if (ShowStats)
+    {
+        <div class="char-card-stats">
+            <div class="char-stat">
+                <span class="char-stat-label">AC</span>
+                <span class="char-stat-value">
+                    @Character.Stats.ArmourClass
+                </span>
+            </div>
+            <div class="char-stat">
+                <span class="char-stat-label">STR</span>
+                <span class="char-stat-value">
+                    @Character.Stats.Strength
+                </span>
+            </div>
+            <div class="char-stat">
+                <span class="char-stat-label">DEX</span>
+                <span class="char-stat-value">
+                    @Character.Stats.Dexterity
+                </span>
+            </div>
+            <div class="char-stat">
+                <span class="char-stat-label">INT</span>
+                <span class="char-stat-value">
+                    @Character.Stats.Intelligence
+                </span>
+            </div>
+        </div>
+    }
+
+    <!-- Status Effects -->
+    @if (ShowStatuses &&
+         Character.ActiveStatuses.Any())
+    {
+        <div class="char-card-statuses">
+            @foreach (var status in
+                Character.ActiveStatuses.Take(4))
+            {
+                <span class="char-status-dot
+                    @GetStatusDotClass(status)"
+                      title="@status">
+                </span>
+            }
+        </div>
+    }
+
+    <!-- Health Status Text -->
+    <div class="char-card-health-text"
+         style="color:@GetHealthColour()">
+        @Character.HealthStatus
+    </div>
+
+    <!-- Dead Overlay -->
+    @if (!Character.Stats.IsAlive)
+    {
+        <div class="char-card-dead-overlay">
+            <span>💀</span>
+            <span>Fallen</span>
+        </div>
+    }
+
+</div>
+
+<style>
+    .char-card {
+        position: relative;
+        background: linear-gradient(
+            135deg,
+            var(--stone-mid),
+            var(--stone-dark)
+        );
+        border: 1px solid var(--stone-lighter);
+        border-radius: var(--radius-md);
+        padding: 0.75rem;
+        cursor: pointer;
+        transition: all var(--transition-fast);
+        overflow: hidden;
+        user-select: none;
+    }
+
+    .char-card:hover {
+        border-color: var(--gold-dark);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+    }
+
+    .char-card-selected {
+        border-color: var(--gold-bright) !important;
+        box-shadow: var(--shadow-gold) !important;
+    }
+
+    .char-card-player {
+        border-left: 3px solid var(--gold-dark);
+    }
+
+    .char-card-enemy {
+        border-left: 3px solid var(--blood-mid);
+    }
+
+    .char-card-companion {
+        border-left: 3px solid #2a8a2a;
+    }
+
+    /* ── Header ── */
+    .char-card-header {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .char-card-portrait {
+        font-size: 1.8rem;
+        flex-shrink: 0;
+        line-height: 1;
+        filter: drop-shadow(
+            0 2px 4px rgba(0,0,0,0.5));
+    }
+
+    .char-card-identity {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .char-card-name {
+        font-family: var(--font-title);
+        font-size: 0.9rem;
+        color: var(--gold-bright);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .char-card-sub {
+        font-size: 0.7rem;
+        color: var(--parchment-mid);
+        font-style: italic;
+    }
+
+    .char-card-level {
+        font-size: 0.7rem;
+        color: var(--parchment-light);
+        font-family: var(--font-ui);
+    }
+
+    .char-card-alignment {
+        color: var(--parchment-dark);
+    }
+
+    .char-card-team {
+        font-size: 1rem;
+        flex-shrink: 0;
+    }
+
+    /* ── Bars ── */
+    .char-card-bars {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .char-card-mana,
+    .char-card-stamina {
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+    }
+
+    .char-card-bar-label {
+        font-size: 0.6rem;
+        color: var(--parchment-dark);
+        font-family: var(--font-ui);
+        text-transform: uppercase;
+        width: 18px;
+        flex-shrink: 0;
+    }
+
+    .char-card-bar-value {
+        font-size: 0.65rem;
+        color: var(--parchment-mid);
+        font-family: var(--font-mono);
+        min-width: 20px;
+        text-align: right;
+    }
+
+    /* ── Stats ── */
+    .char-card-stats {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0.25rem;
+        margin: 0.5rem 0;
+        padding: 0.4rem;
+        background: rgba(0,0,0,0.2);
+        border-radius: var(--radius-sm);
+    }
+
+    .char-stat {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.1rem;
+    }
+
+    .char-stat-label {
+        font-size: 0.6rem;
+        color: var(--parchment-dark);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-family: var(--font-ui);
+    }
+
+    .char-stat-value {
+        font-size: 0.85rem;
+        color: var(--parchment-light);
+        font-family: var(--font-mono);
+        font-weight: bold;
+    }
+
+    /* ── Statuses ── */
+    .char-card-statuses {
+        display: flex;
+        gap: 0.25rem;
+        margin: 0.25rem 0;
+    }
+
+    .char-status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        display: inline-block;
+    }
+
+    .dot-buff    { background: #44cc44; }
+    .dot-debuff  { background: #cc4444; }
+    .dot-neutral { background: #888888; }
+
+    /* ── Health Text ── */
+    .char-card-health-text {
+        font-size: 0.7rem;
+        font-style: italic;
+        text-align: right;
+        font-family: var(--font-body);
+    }
+
+    /* ── Dead Overlay ── */
+    .char-card-dead-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(0,0,0,0.75);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.25rem;
+        font-family: var(--font-title);
+        font-size: 0.9rem;
+        color: var(--parchment-dark);
+        border-radius: var(--radius-md);
+    }
+
+    .char-card-dead-overlay span:first-child {
+        font-size: 2rem;
+    }
+
+    /* ── Bar track override for inline ── */
+    .bar-sm { height: 6px; }
+    .health-bar-track {
+        flex: 1;
+        background: rgba(0,0,0,0.5);
+        border-radius: 4px;
+        overflow: hidden;
+        border: 1px solid rgba(255,255,255,0.08);
+        height: 6px;
+    }
+    .health-bar-fill {
+        height: 100%;
+        border-radius: 4px;
+        transition: width 0.4s ease;
+        min-width: 2px;
+        max-width: 100%;
+    }
+</style>
+
+@code {
+    [Parameter] public CharacterBase Character
+        { get; set; } = null!;
+    [Parameter] public bool IsSelected
+        { get; set; } = false;
+    [Parameter] public bool IsEnemy
+        { get; set; } = false;
+    [Parameter] public bool ShowStats
+        { get; set; } = true;
+    [Parameter] public bool ShowStatuses
+        { get; set; } = true;
+    [Parameter] public bool ShowTeamIndicator
+        { get; set; } = false;
+    [Parameter] public EventCallback<CharacterBase>
+        OnClick { get; set; }
+
+    private string GetCardClass()
+    {
+        if (IsEnemy) return "char-card-enemy";
+        if (Character is NpcCharacter npc &&
+            npc.NpcType == NpcType.Companion)
+            return "char-card-companion";
+        return "char-card-player";
+    }
+
+    private async Task HandleClick()
+    {
+        if (OnClick.HasDelegate)
+            await OnClick.InvokeAsync(Character);
+    }
+
+    private double GetManaPercent()
+    {
+        if (Character.Stats.MaxMana <= 0) return 0;
+        return Math.Max(0, Math.Min(100,
+            (double)Character.Stats.CurrentMana /
+            Character.Stats.MaxMana * 100));
+    }
+
+    private double GetStaminaPercent()
+    {
+        if (Character.Stats.MaxStamina <= 0)
+            return 0;
+        return Math.Max(0, Math.Min(100,
+            (double)Character.Stats.CurrentStamina /
+            Character.Stats.MaxStamina * 100));
+    }
+
+    private string GetHealthColour() =>
+        Character.Stats.HealthPercent switch
+        {
+            >= 75 => "#44cc44",
+            >= 50 => "#cccc44",
+            >= 25 => "#cc7744",
+            _     => "#cc4444"
+        };
+
+    private string GetStatusDotClass(
+        CharacterStatus status) => status switch
+    {
+        CharacterStatus.Blessed   or
+        CharacterStatus.Hasted    or
+        CharacterStatus.Shielded   => "dot-buff",
+        CharacterStatus.Healthy    => "dot-neutral",
+        _                          => "dot-debuff"
+    };
+
+    private string GetAlignmentShort() =>
+        Character.Alignment switch
+        {
+            Alignment.LawfulGood    => "LG",
+            Alignment.LawfulNeutral => "LN",
+            Alignment.LawfulEvil    => "LE",
+            Alignment.NeutralGood   => "NG",
+            Alignment.TrueNeutral   => "TN",
+            Alignment.NeutralEvil   => "NE",
+            Alignment.ChaoticGood   => "CG",
+            Alignment.ChaoticNeutral=> "CN",
+            Alignment.ChaoticEvil   => "CE",
+            _                       => "??"
+        };
+
+    private string GetClassEmoji() =>
+        Character.Class switch
+        {
+            CharacterClass.Fighter   or
+            CharacterClass.Barbarian  => "⚔️",
+            CharacterClass.Paladin    => "🛡️",
+            CharacterClass.Ranger     => "🏹",
+            CharacterClass.Rogue      or
+            CharacterClass.Assassin   => "🗡️",
+            CharacterClass.Mage       or
+            CharacterClass.Sorcerer   or
+            CharacterClass.Illusionist => "🔮",
+            CharacterClass.Cleric     or
+            CharacterClass.Druid      or
+            CharacterClass.Shaman     => "✨",
+            CharacterClass.Necromancer => "💀",
+            CharacterClass.Bard        => "🎵",
+            CharacterClass.Warlock     => "🌑",
+            CharacterClass.Monk        => "👊",
+            CharacterClass.Witchhunter => "🔥",
+            CharacterClass.BountyHunter=> "🎯",
+            CharacterClass.Chaos       => "🌀",
+            _                          => "⚔️"
+        };
+}

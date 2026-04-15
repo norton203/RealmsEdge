@@ -1,0 +1,375 @@
+﻿@using RealmsEdge.Shared.Enums
+@using RealmsEdge.Shared.Models.Session
+@using RealmsEdge.Shared.Services
+@inject GameStateManager GameManager
+@implements IDisposable
+
+<div class="game-header">
+
+    <!-- Left — Character Info -->
+    <div class="header-left">
+        @if (_player != null)
+        {
+            <div class="header-character">
+                <div class="header-character-name">
+                    @_player.FullTitle
+                </div>
+                <div class="header-character-sub">
+                    Level @_player.Level
+                    @_player.Race @_player.Class
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- Centre — Location -->
+    <div class="header-centre">
+        @if (_location != null)
+        {
+            <div class="header-location">
+                <span class="header-location-icon">
+                    @_location.TypeDisplay.Split(' ')[0]
+                </span>
+                <span class="header-location-name">
+                    @_location.Name
+                </span>
+            </div>
+        }
+    </div>
+
+    <!-- Right — Resources & Gold -->
+    <div class="header-right">
+        @if (_player != null)
+        {
+            <!-- HP Bar -->
+            <div class="header-resource">
+                <span class="resource-icon">❤️</span>
+                <div class="resource-bar-wrap">
+                    <div class="resource-bar hp-bar"
+                         style="width:@GetHpPercent()%">
+                    </div>
+                </div>
+                <span class="resource-value">
+                    @_player.Stats.CurrentHitPoints
+                </span>
+            </div>
+
+            <!-- Mana Bar (if has mana) -->
+            @if (_player.Stats.MaxMana > 0)
+            {
+                <div class="header-resource">
+                    <span class="resource-icon">✨</span>
+                    <div class="resource-bar-wrap">
+                        <div class="resource-bar mana-bar"
+                             style="width:@GetManaPercent()%">
+                        </div>
+                    </div>
+                    <span class="resource-value">
+                        @_player.Stats.CurrentMana
+                    </span>
+                </div>
+            }
+
+            <!-- Gold -->
+            <div class="header-gold">
+                <span>💰</span>
+                <span class="gold-value">
+                    @_player.Gold g
+                </span>
+                @if (_player.Silver > 0)
+                {
+                    <span class="silver-value">
+                        @_player.Silver s
+                    </span>
+                }
+            </div>
+        }
+    </div>
+
+</div>
+
+<!-- Status Effects Row -->
+@if (_player?.ActiveStatuses.Any() == true)
+{
+    <div class="header-statuses">
+        @foreach (var status in
+            _player.ActiveStatuses.Take(6))
+        {
+            <span class="status-badge @GetStatusClass(status)"
+                  title="@status.ToString()">
+                @GetStatusIcon(status)
+            </span>
+        }
+        @if (_player.ActiveStatuses.Count > 6)
+        {
+            <span class="status-badge">
+                +@(_player.ActiveStatuses.Count - 6)
+            </span>
+        }
+    </div>
+}
+
+<style>
+    .game-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.4rem 1rem;
+        min-height: 52px;
+        gap: 0.5rem;
+    }
+
+    /* ── Left ── */
+    .header-left {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .header-character-name {
+        font-family: var(--font-title);
+        font-size: 0.9rem;
+        color: var(--gold-bright);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .header-character-sub {
+        font-size: 0.7rem;
+        color: var(--parchment-mid);
+        font-style: italic;
+        white-space: nowrap;
+    }
+
+    /* ── Centre ── */
+    .header-centre {
+        flex: 1;
+        text-align: center;
+    }
+
+    .header-location {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.3rem;
+    }
+
+    .header-location-icon {
+        font-size: 1rem;
+    }
+
+    .header-location-name {
+        font-family: var(--font-title);
+        font-size: 0.8rem;
+        color: var(--parchment-light);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 120px;
+    }
+
+    /* ── Right ── */
+    .header-right {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 0.2rem;
+    }
+
+    .header-resource {
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+        width: 100%;
+        justify-content: flex-end;
+    }
+
+    .resource-icon {
+        font-size: 0.75rem;
+        flex-shrink: 0;
+    }
+
+    .resource-bar-wrap {
+        width: 80px;
+        height: 6px;
+        background: rgba(0,0,0,0.5);
+        border-radius: 3px;
+        overflow: hidden;
+        border: 1px solid rgba(255,255,255,0.1);
+        flex-shrink: 0;
+    }
+
+    .resource-bar {
+        height: 100%;
+        border-radius: 3px;
+        transition: width 0.4s ease;
+        max-width: 100%;
+        min-width: 2px;
+    }
+
+    .hp-bar {
+        background: linear-gradient( 90deg, var(--health-low), var(--health-full) );
+        box-shadow: 0 0 4px rgba(45,138,45,0.5);
+    }
+
+    .mana-bar {
+        background: linear-gradient( 90deg, #1a2a6a, #4a7aff );
+        box-shadow: 0 0 4px rgba(74,122,255,0.5);
+    }
+
+    .resource-value {
+        font-size: 0.7rem;
+        color: var(--parchment-light);
+        font-family: var(--font-mono);
+        min-width: 24px;
+        text-align: right;
+    }
+
+    /* ── Gold ── */
+    .header-gold {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        font-size: 0.75rem;
+    }
+
+    .gold-value {
+        color: var(--gold-bright);
+        font-family: var(--font-title);
+    }
+
+    .silver-value {
+        color: var(--parchment-mid);
+        font-family: var(--font-title);
+    }
+
+    /* ── Status Row ── */
+    .header-statuses {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.2rem 1rem;
+        border-top: 1px solid rgba(255,255,255,0.05);
+        flex-wrap: wrap;
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        background: rgba(0,0,0,0.4);
+        border: 1px solid var(--stone-lighter);
+        cursor: default;
+    }
+
+    .status-buff {
+        border-color: #2a8a2a;
+        background: rgba(42,138,42,0.2);
+    }
+
+    .status-debuff {
+        border-color: var(--blood-mid);
+        background: rgba(139,21,21,0.2);
+    }
+
+    .status-neutral {
+        border-color: var(--stone-lighter);
+    }
+</style>
+
+@code {
+    private RealmsEdge.Shared.Models.Characters
+        .PlayerCharacter? _player;
+    private RealmsEdge.Shared.Models.World
+        .WorldLocation? _location;
+
+    protected override void OnInitialized()
+    {
+        GameManager.OnStateChanged   +=
+            HandleStateChanged;
+        GameManager.OnSessionUpdated +=
+            HandleSessionUpdated;
+        RefreshData();
+    }
+
+    private void HandleStateChanged()
+    {
+        RefreshData();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void HandleSessionUpdated()
+    {
+        RefreshData();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void RefreshData()
+    {
+        if (!GameManager.HasSession) return;
+        _player   = GameManager.Session.ActivePlayer;
+        _location = GameManager.Session.CurrentLocation;
+    }
+
+    private double GetHpPercent()
+    {
+        if (_player == null) return 0;
+        return Math.Max(0, Math.Min(100,
+            _player.Stats.HealthPercent));
+    }
+
+    private double GetManaPercent()
+    {
+        if (_player == null) return 0;
+        return Math.Max(0, Math.Min(100,
+            _player.Stats.ManaPercent));
+    }
+
+    private string GetStatusClass(
+        CharacterStatus status) => status switch
+        {
+            CharacterStatus.Blessed   or
+            CharacterStatus.Hasted    or
+            CharacterStatus.Invisible or
+            CharacterStatus.Shielded => "status-buff",
+            CharacterStatus.Healthy => "status-neutral",
+            _ => "status-debuff"
+        };
+
+    private string GetStatusIcon(
+        CharacterStatus status) => status switch
+        {
+            CharacterStatus.Poisoned => "☠️",
+            CharacterStatus.Burning => "🔥",
+            CharacterStatus.Frozen => "❄️",
+            CharacterStatus.Blessed => "✨",
+            CharacterStatus.Cursed => "💀",
+            CharacterStatus.Stunned => "😵",
+            CharacterStatus.Feared => "😨",
+            CharacterStatus.Hasted => "⚡",
+            CharacterStatus.Slowed => "🐢",
+            CharacterStatus.Invisible => "👻",
+            CharacterStatus.Bleeding => "🩸",
+            CharacterStatus.Shielded => "🛡️",
+            CharacterStatus.Berserk => "😡",
+            CharacterStatus.Paralysed => "⛓️",
+            CharacterStatus.Confused => "🌀",
+            CharacterStatus.Charmed => "💕",
+            CharacterStatus.Corrupted => "🌑",
+            CharacterStatus.Possessed => "👁️",
+            _ => "❓"
+        };
+
+    public void Dispose()
+    {
+        GameManager.OnStateChanged   -=
+            HandleStateChanged;
+        GameManager.OnSessionUpdated -=
+            HandleSessionUpdated;
+    }
+}
