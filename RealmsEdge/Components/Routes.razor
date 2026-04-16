@@ -1,8 +1,29 @@
-﻿<Router AppAssembly="@typeof(MauiProgram).Assembly">
-    <Found Context="routeData">
-        <RouteView RouteData="@routeData"
-                   DefaultLayout="@typeof(MainLayout)" />
-        <FocusOnNavigate RouteData="@routeData"
-                         Selector="h1" />
-    </Found>
-</Router>
+﻿<ErrorBoundary>
+    <ChildContent>
+        <Router AppAssembly="@typeof(MauiProgram).Assembly">
+            <Found Context="routeData">
+                <RouteView RouteData="@routeData"
+                           DefaultLayout="@typeof(MainLayout)" />
+                <FocusOnNavigate RouteData="@routeData"
+                                 Selector="h1" />
+            </Found>
+        </Router>
+    </ChildContent>
+    <ErrorContent Context="ex">
+        <div style="padding:2rem; color:white;
+                    background:#1a0000;
+                    font-family:monospace;
+                    white-space:pre-wrap;
+                    overflow:auto;">
+            <h2 style="color:#ff4444;">
+                ⚠️ Error Details
+            </h2>
+            <p style="color:#ff8888;">
+                @ex.Message
+            </p>
+            <p style="color:#888; font-size:0.8rem;">
+                @ex.StackTrace
+            </p>
+        </div>
+    </ErrorContent>
+</ErrorBoundary>

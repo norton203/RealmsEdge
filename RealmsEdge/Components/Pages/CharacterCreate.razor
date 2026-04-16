@@ -1,0 +1,907 @@
+﻿@page "/create"
+@using RealmsEdge.Shared.Enums
+@using RealmsEdge.Shared.Models.Characters
+@using RealmsEdge.Shared.Services
+@using RealmsEdge.Shared.Models
+@inject GameStateManager GameManager
+@inject DiceService DiceService
+
+<div class="create-shell">
+
+    <!-- Header -->
+    <div class="create-header">
+        <button class="btn-ghost create-back"
+                @onclick="GoBack">
+            ← Back
+        </button>
+        <h1 class="create-title">
+            ⚔️ Create Your Legend
+        </h1>
+        <div class="create-step-indicator">
+            Step @_step of 4
+        </div>
+    </div>
+
+    <!-- Progress Bar -->
+    <div class="create-progress">
+        <div class="create-progress-fill"
+             style="width:@(_step * 25)%">
+        </div>
+    </div>
+
+    <!-- Step Content -->
+    <div class="create-content">
+
+        <!-- Step 1 — Identity -->
+        @if (_step == 1)
+        {
+            <div class="create-step paper">
+                <h2>📜 Your Identity</h2>
+                <hr />
+
+                <div class="create-field">
+                    <label class="create-label">
+                        Player Name
+                    </label>
+                    <input class="input-parchment"
+                           @bind="_playerName"
+                           placeholder="Your name..."
+                           maxlength="24" />
+                </div>
+
+                <div class="create-field">
+                    <label class="create-label">
+                        Character Name
+                    </label>
+                    <input class="input-parchment"
+                           @bind="_characterName"
+                           placeholder="Hero's name..."
+                           maxlength="24" />
+                    @if (_nameError != null)
+                    {
+                        <span class="create-error">
+                            @_nameError
+                        </span>
+                    }
+                </div>
+
+                <div class="create-field">
+                    <label class="create-label">
+                        Gender
+                    </label>
+                    <div class="create-options">
+                        @foreach (var gender in
+                            Enum.GetValues<Gender>()
+                                .Where(g =>
+                                    g != Gender.None))
+                        {
+                            <button class="create-option
+                                @(_gender == gender
+                                    ? "option-selected"
+                                    : "")"
+                                    @onclick="() =>
+                                        _gender = gender">
+                                @gender.ToString()
+                            </button>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- Step 2 — Race & Class -->
+        @if (_step == 2)
+        {
+            <div class="create-step">
+
+                <!-- Race Selection -->
+                <div class="paper create-section">
+                    <h2>🧬 Choose Your Race</h2>
+                    <hr />
+                    <div class="create-grid">
+                        @foreach (var race in
+                            Enum.GetValues<CharacterRace>())
+                        {
+                            <button class="create-card
+                                @(_race == race
+                                    ? "card-selected" : "")"
+                                    @onclick="() =>
+                                        SelectRace(race)">
+                                <span class="card-icon">
+                                    @GetRaceEmoji(race)
+                                </span>
+                                <span class="card-name">
+                                    @race.ToString()
+                                </span>
+                            </button>
+                        }
+                    </div>
+                </div>
+
+                <!-- Class Selection -->
+                <div class="paper create-section"
+                     style="margin-top:1rem">
+                    <h2>⚔️ Choose Your Class</h2>
+                    <hr />
+                    @if (_recommendedClasses.Any())
+                    {
+                        <p class="text-small text-dim">
+                            ⭐ Recommended for your race
+                        </p>
+                    }
+                    <div class="create-grid">
+                        @foreach (var cls in
+                            Enum.GetValues<CharacterClass>())
+                        {
+                            var isRecommended =
+                                _recommendedClasses
+                                    .Contains(cls);
+                            var isValid =
+                                _classErrors
+                                    .ContainsKey(cls);
+
+                            <button class="create-card
+                                @(_class == cls
+                                    ? "card-selected" : "")
+                                @(isRecommended
+                                    ? "card-recommended" : "")
+                                @(isValid
+                                    ? "card-invalid" : "")"
+                                    @onclick="() =>
+                                        SelectClass(cls)"
+                                    title="@(isValid
+                                        ? _classErrors[cls]
+                                        : "")">
+                                <span class="card-icon">
+                                    @GetClassEmoji(cls)
+                                </span>
+                                <span class="card-name">
+                                    @cls.ToString()
+                                </span>
+                                @if (isRecommended)
+                                {
+                                    <span class="card-badge">
+                                        ⭐
+                                    </span>
+                                }
+                                @if (isValid)
+                                {
+                                    <span class="card-badge
+                                        badge-invalid">
+                                        ✕
+                                    </span>
+                                }
+                            </button>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- Step 3 — Alignment & Stats -->
+        @if (_step == 3)
+        {
+            <div class="create-step">
+
+                <!-- Alignment -->
+                <div class="paper create-section">
+                    <h2>⚖️ Choose Your Alignment</h2>
+                    <hr />
+                    <div class="alignment-grid">
+                        @foreach (var alignment in
+                            Enum.GetValues<Alignment>())
+                        {
+                            var isRecommended =
+                                _recommendedAlignments
+                                    .Contains(alignment);
+                            <button class="alignment-btn
+                                @(_alignment == alignment
+                                    ? "option-selected" : "")
+                                @(isRecommended
+                                    ? "card-recommended" : "")"
+                                    @onclick="() =>
+                                        _alignment = alignment">
+                                <span class="alignment-name">
+                                    @GetAlignmentShort(
+                                        alignment)
+                                </span>
+                                <span class="alignment-full">
+                                    @alignment.ToString()
+                                </span>
+                            </button>
+                        }
+                    </div>
+                </div>
+
+                <!-- Stat Rolling -->
+                <div class="paper create-section"
+                     style="margin-top:1rem">
+                    <h2>🎲 Roll Your Stats</h2>
+                    <hr />
+                    <p class="text-small text-dim">
+                        Roll 4D6 drop lowest —
+                        classic D&D character creation
+                    </p>
+
+                    <div class="stat-method-toggle">
+                        <button class="btn-ghost
+                            @(_useStandard
+                                ? "option-selected" : "")"
+                                @onclick="UseStandardArray">
+                            Standard Array
+                        </button>
+                        <button class="btn-ghost
+                            @(!_useStandard
+                                ? "option-selected" : "")"
+                                @onclick="RollStats">
+                            🎲 Roll Stats
+                        </button>
+                    </div>
+
+                    @if (_statRolls.Any())
+                    {
+                        <div class="stat-assignments">
+                            @for (int i = 0; i < 6; i++)
+                            {
+                                var statIndex = i;
+                                var statName = GetStatName(i);
+                                var roll = _statRolls[i];
+                                <div class="stat-row">
+                                    <span class="stat-name">
+                                        @statName
+                                    </span>
+                                    <div class="stat-roll-display">
+                                        <span class="stat-value"
+                                              style="color:
+                                              @GetStatColour(
+                                                  roll.Total)">
+                                            @roll.Total
+                                        </span>
+                                        <span class="stat-roll-detail">
+                                            [@string.Join("+",
+                                                roll.IndividualResults)]
+                                        </span>
+                                    </div>
+                                    @if (GetRacialBonus(
+                                        statIndex) != 0)
+                                    {
+                                        <span class="stat-bonus">
+                                            +@GetRacialBonus(
+                                                statIndex)
+                                            racial
+                                        </span>
+                                    }
+                                </div>
+                            }
+
+                            <div class="stat-total">
+                                Total: @_statRolls
+                                    .Sum(r => r.Total)
+                                <button class="btn-ghost"
+                                        style="margin-left:
+                                            1rem"
+                                        @onclick="RollStats">
+                                    🎲 Reroll
+                                </button>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+
+        <!-- Step 4 — Review & Confirm -->
+        @if (_step == 4)
+        {
+            <div class="create-step paper">
+                <h2>✅ Review Your Character</h2>
+                <hr />
+
+                <div class="review-block">
+                    <div class="review-row">
+                        <span class="review-label">
+                            Name
+                        </span>
+                        <span class="review-value">
+                            @_characterName
+                        </span>
+                    </div>
+                    <div class="review-row">
+                        <span class="review-label">
+                            Player
+                        </span>
+                        <span class="review-value">
+                            @_playerName
+                        </span>
+                    </div>
+                    <div class="review-row">
+                        <span class="review-label">
+                            Race
+                        </span>
+                        <span class="review-value">
+                            @GetRaceEmoji(_race)
+                            @_race.ToString()
+                        </span>
+                    </div>
+                    <div class="review-row">
+                        <span class="review-label">
+                            Class
+                        </span>
+                        <span class="review-value">
+                            @GetClassEmoji(_class)
+                            @_class.ToString()
+                        </span>
+                    </div>
+                    <div class="review-row">
+                        <span class="review-label">
+                            Alignment
+                        </span>
+                        <span class="review-value">
+                            @_alignment.ToString()
+                        </span>
+                    </div>
+                    <div class="review-row">
+                        <span class="review-label">
+                            Gender
+                        </span>
+                        <span class="review-value">
+                            @_gender.ToString()
+                        </span>
+                    </div>
+                </div>
+
+                <div class="divider-ornate">⚔️</div>
+
+                <!-- Stats Preview -->
+                <div class="review-stats">
+                    @for (int i = 0; i < 6; i++)
+                    {
+                        <div class="review-stat">
+                            <span class="review-stat-name">
+                                @GetStatName(i)
+                            </span>
+                            <span class="review-stat-value"
+                                  style="color:@GetStatColour(
+                                      _statRolls.Any()
+                                          ? _statRolls[i].Total
+                                          : 10)">
+                                @(_statRolls.Any()
+                                    ? _statRolls[i].Total
+                                    : 10)
+                            </span>
+                        </div>
+                    }
+                </div>
+
+                @if (_validationErrors.Any())
+                {
+                    <div class="create-errors">
+                        @foreach (var error in
+                            _validationErrors)
+                        {
+                            <div class="create-error">
+                                ⚠️ @error
+                            </div>
+                        }
+                    </div>
+                }
+
+                @if (_validationWarnings.Any())
+                {
+                    <div class="create-warnings">
+                        @foreach (var warning in
+                            _validationWarnings)
+                        {
+                            <div class="create-warning">
+                                💡 @warning
+                            </div>
+                        }
+                    </div>
+                }
+
+                @if (_isCreating)
+                {
+                    <div class="create-loading">
+                        <span>⚔️ Forging your legend...</span>
+                    </div>
+                }
+            </div>
+        }
+
+    </div>
+
+    <!-- Navigation Buttons -->
+    <div class="create-nav">
+        @if (_step > 1)
+        {
+            <button class="btn-ghost"
+                    @onclick="PrevStep"
+                    disabled="@_isCreating">
+                ← Previous
+            </button>
+        }
+        else
+        {
+            <div></div>
+        }
+
+        @if (_step < 4)
+        {
+            <button class="btn-realm"
+                    @onclick="NextStep">
+                Next →
+            </button>
+        }
+        else
+        {
+            <button class="btn-realm"
+                    @onclick="CreateCharacter"
+                    disabled="@_isCreating">
+                ⚔️ Begin Adventure!
+            </button>
+        }
+    </div>
+
+</div>
+
+
+@code {
+    // =====================
+    // State
+    // =====================
+
+    private int _step = 1;
+    private string _playerName = string.Empty;
+    private string _characterName = string.Empty;
+    private Gender _gender = Gender.Unspecified;
+    private CharacterRace _race =
+        CharacterRace.Human;
+    private CharacterClass _class =
+        CharacterClass.Fighter;
+    private Alignment _alignment =
+        Alignment.TrueNeutral;
+    private List<DiceRoll> _statRolls = new();
+    private bool _useStandard = false;
+    private bool _isCreating = false;
+    private string? _nameError = null;
+    private List<string> _validationErrors = new();
+    private List<string> _validationWarnings = new();
+    private List<CharacterClass> _recommendedClasses
+        = new();
+    private List<Alignment> _recommendedAlignments
+        = new();
+    private Dictionary<CharacterClass, string>
+        _classErrors = new();
+
+    // =====================
+    // Lifecycle
+    // =====================
+
+    protected override void OnInitialized()
+    {
+        RollStats();
+        UpdateRecommendations();
+    }
+
+    // =====================
+    // Navigation
+    // =====================
+
+    private void GoBack()
+    {
+        if (_step > 1)
+            PrevStep();
+        else
+            GameManager.TransitionTo(
+                GameState.MainMenu);
+    }
+
+    private void NextStep()
+    {
+        if (!ValidateStep()) return;
+        _step++;
+        _validationErrors.Clear();
+        _validationWarnings.Clear();
+    }
+
+    private void PrevStep()
+    {
+        _step--;
+        _validationErrors.Clear();
+        _validationWarnings.Clear();
+    }
+
+    private bool ValidateStep()
+    {
+        _validationErrors.Clear();
+
+        switch (_step)
+        {
+            case 1:
+                if (string.IsNullOrWhiteSpace(
+                    _playerName))
+                    _validationErrors.Add(
+                        "Please enter your name.");
+                if (string.IsNullOrWhiteSpace(
+                    _characterName))
+                    _validationErrors.Add(
+                        "Please name your character.");
+                if (_characterName.Length < 2)
+                    _validationErrors.Add(
+                        "Character name must be at " +
+                        "least 2 characters.");
+                break;
+
+            case 2:
+                ValidateRaceClass();
+                break;
+
+            case 3:
+                if (!_statRolls.Any())
+                    _validationErrors.Add(
+                        "Please roll or assign stats.");
+                ValidateAlignment();
+                break;
+        }
+
+        return !_validationErrors.Any();
+    }
+
+    // =====================
+    // Race & Class
+    // =====================
+
+    private void SelectRace(CharacterRace race)
+    {
+        _race = race;
+        UpdateRecommendations();
+        ValidateRaceClass();
+    }
+
+    private void SelectClass(CharacterClass cls)
+    {
+        if (_classErrors.ContainsKey(cls)) return;
+        _class = cls;
+        UpdateRecommendations();
+    }
+
+    private void UpdateRecommendations()
+    {
+        // These would come from validation service
+        // For now use simple logic
+        _recommendedClasses = _race switch
+        {
+            CharacterRace.Human      => new()
+            {
+                CharacterClass.Fighter,
+                CharacterClass.Paladin,
+                CharacterClass.Ranger
+            },
+            CharacterRace.Elf        => new()
+            {
+                CharacterClass.Ranger,
+                CharacterClass.Mage,
+                CharacterClass.Rogue
+            },
+            CharacterRace.Dwarf      => new()
+            {
+                CharacterClass.Fighter,
+                CharacterClass.Cleric,
+                CharacterClass.Barbarian
+            },
+            CharacterRace.Halfling   => new()
+            {
+                CharacterClass.Rogue,
+                CharacterClass.Bard,
+                CharacterClass.Ranger
+            },
+            CharacterRace.Orc        => new()
+            {
+                CharacterClass.Barbarian,
+                CharacterClass.Fighter
+            },
+            CharacterRace.Tiefling   => new()
+            {
+                CharacterClass.Warlock,
+                CharacterClass.Sorcerer,
+                CharacterClass.Rogue
+            },
+            _ => new()
+            {
+                CharacterClass.Fighter,
+                CharacterClass.Rogue,
+                CharacterClass.Mage
+            }
+        };
+
+        _recommendedAlignments = _class switch
+        {
+            CharacterClass.Paladin    => new()
+            {
+                Alignment.LawfulGood,
+                Alignment.NeutralGood
+            },
+            CharacterClass.Druid      => new()
+            {
+                Alignment.TrueNeutral,
+                Alignment.NeutralGood
+            },
+            CharacterClass.Rogue     or
+            CharacterClass.Assassin   => new()
+            {
+                Alignment.ChaoticNeutral,
+                Alignment.NeutralEvil
+            },
+            CharacterClass.Necromancer => new()
+            {
+                Alignment.NeutralEvil,
+                Alignment.ChaoticEvil
+            },
+            CharacterClass.Chaos      => new()
+            {
+                Alignment.ChaoticEvil,
+                Alignment.ChaoticNeutral
+            },
+            _ => new()
+            {
+                Alignment.TrueNeutral,
+                Alignment.ChaoticGood
+            }
+        };
+    }
+
+    private void ValidateRaceClass()
+    {
+        _classErrors.Clear();
+        _validationErrors.Clear();
+
+        // Check forbidden combinations
+        var forbidden =
+            new Dictionary<CharacterRace,
+                List<CharacterClass>>
+        {
+            [CharacterRace.Orc] = new()
+            {
+                CharacterClass.Mage,
+                CharacterClass.Illusionist,
+                CharacterClass.Bard
+            },
+            [CharacterRace.Goblin] = new()
+            {
+                CharacterClass.Paladin,
+                CharacterClass.Cleric
+            },
+            [CharacterRace.Undead] = new()
+            {
+                CharacterClass.Paladin,
+                CharacterClass.Cleric,
+                CharacterClass.Druid
+            },
+            [CharacterRace.Demon] = new()
+            {
+                CharacterClass.Paladin,
+                CharacterClass.Cleric,
+                CharacterClass.Witchhunter
+            },
+            [CharacterRace.Aasimar] = new()
+            {
+                CharacterClass.Necromancer,
+                CharacterClass.Chaos,
+                CharacterClass.Warlock
+            }
+        };
+
+        if (forbidden.TryGetValue(
+            _race, out var forbiddenClasses))
+        {
+            foreach (var cls in forbiddenClasses)
+                _classErrors[cls] =
+                    $"{_race} cannot be a {cls}.";
+        }
+
+        if (_classErrors.ContainsKey(_class))
+        {
+            _validationErrors.Add(
+                _classErrors[_class]);
+            _class = CharacterClass.Fighter;
+        }
+    }
+
+    private void ValidateAlignment()
+    {
+        if (_class == CharacterClass.Paladin &&
+            _alignment != Alignment.LawfulGood &&
+            _alignment != Alignment.NeutralGood)
+            _validationErrors.Add(
+                "Paladins must have a Good alignment.");
+
+        if (_class == CharacterClass.Druid &&
+            _alignment != Alignment.TrueNeutral &&
+            _alignment != Alignment.NeutralGood &&
+            _alignment != Alignment.NeutralEvil)
+            _validationErrors.Add(
+                "Druids must have Neutral alignment.");
+
+        if (_class == CharacterClass.Chaos &&
+            _alignment != Alignment.ChaoticEvil &&
+            _alignment != Alignment.ChaoticNeutral)
+            _validationErrors.Add(
+                "Chaos class requires Chaotic alignment.");
+    }
+
+    // =====================
+    // Stats
+    // =====================
+
+    private void RollStats()
+    {
+        _useStandard = false;
+        _statRolls = DiceService.RollFullStatArray();
+    }
+
+    private void UseStandardArray()
+    {
+        _useStandard = true;
+        var standard = new List<int>
+            { 15, 14, 13, 12, 10, 8 };
+
+        _statRolls = standard.Select(v =>
+        {
+            var roll = new DiceRoll
+            {
+                DiceType = DiceType.D6,
+                NumberOfDice = 4
+            };
+            roll.IndividualResults.Add(v);
+            return roll;
+        }).ToList();
+    }
+
+    private int GetRacialBonus(int statIndex)
+    {
+        return (_race, statIndex) switch
+        {
+            (CharacterRace.Elf, 1)        =>  2,
+            (CharacterRace.Elf, 3)        =>  2,
+            (CharacterRace.Elf, 2)        => -1,
+            (CharacterRace.Dwarf, 2)      =>  2,
+            (CharacterRace.Dwarf, 0)      =>  1,
+            (CharacterRace.Dwarf, 5)      => -1,
+            (CharacterRace.Halfling, 1)   =>  2,
+            (CharacterRace.Halfling, 5)   =>  1,
+            (CharacterRace.Halfling, 0)   => -2,
+            (CharacterRace.HalfOrc, 0)    =>  2,
+            (CharacterRace.HalfOrc, 2)    =>  1,
+            (CharacterRace.Orc, 0)        =>  4,
+            (CharacterRace.Orc, 2)        =>  2,
+            (CharacterRace.Dragonborn, 0) =>  2,
+            (CharacterRace.Dragonborn, 2) =>  1,
+            _                             =>  0
+        };
+    }
+
+    // =====================
+    // Create Character
+    // =====================
+
+    private async Task CreateCharacter()
+    {
+        _validationErrors.Clear();
+        _validationWarnings.Clear();
+
+        if (!ValidateStep()) return;
+
+        _isCreating = true;
+        StateHasChanged();
+
+        var result = await GameManager
+            .CreateCharacter(
+                _playerName,
+                _characterName,
+                _race,
+                _class,
+                _alignment,
+                _gender,
+                _statRolls);
+
+        if (result.Success)
+        {
+            GameManager.TransitionTo(
+                GameState.Exploring);
+        }
+        else
+        {
+            _validationErrors.Add(result.Message);
+            _isCreating = false;
+        }
+
+        StateHasChanged();
+    }
+
+    // =====================
+    // Display Helpers
+    // =====================
+
+    private static string GetStatName(int index)
+        => index switch
+    {
+        0 => "Strength",
+        1 => "Dexterity",
+        2 => "Constitution",
+        3 => "Intelligence",
+        4 => "Wisdom",
+        5 => "Charisma",
+        _ => "Unknown"
+    };
+
+    private static string GetStatColour(int value)
+        => value switch
+    {
+        >= 16 => "#44cc44",
+        >= 13 => "#88cc44",
+        >= 10 => "#cccc44",
+        >= 7  => "#cc8844",
+        _     => "#cc4444"
+    };
+
+    private static string GetRaceEmoji(
+        CharacterRace race) => race switch
+    {
+        CharacterRace.Human      => "👤",
+        CharacterRace.Elf        => "🧝",
+        CharacterRace.Dwarf      => "⛏️",
+        CharacterRace.Halfling   => "🍃",
+        CharacterRace.Gnome      => "🔬",
+        CharacterRace.HalfElf    => "🌟",
+        CharacterRace.HalfOrc    => "💪",
+        CharacterRace.Orc        => "🗡️",
+        CharacterRace.Goblin     => "👺",
+        CharacterRace.Undead     => "💀",
+        CharacterRace.Vampire    => "🦇",
+        CharacterRace.Demon      => "😈",
+        CharacterRace.Dragonborn => "🐉",
+        CharacterRace.Tiefling   => "😈",
+        CharacterRace.Aasimar    => "😇",
+        _                        => "👤"
+    };
+
+    private static string GetClassEmoji(
+        CharacterClass cls) => cls switch
+    {
+        CharacterClass.Fighter      or
+        CharacterClass.Barbarian     => "⚔️",
+        CharacterClass.Paladin       => "🛡️",
+        CharacterClass.Ranger        => "🏹",
+        CharacterClass.Rogue        or
+        CharacterClass.Assassin      => "🗡️",
+        CharacterClass.Mage         or
+        CharacterClass.Sorcerer     or
+        CharacterClass.Illusionist   => "🔮",
+        CharacterClass.Cleric       or
+        CharacterClass.Druid        or
+        CharacterClass.Shaman        => "✨",
+        CharacterClass.Necromancer   => "💀",
+        CharacterClass.Bard          => "🎵",
+        CharacterClass.Warlock       => "🌑",
+        CharacterClass.Monk          => "👊",
+        CharacterClass.Witchhunter   => "🔥",
+        CharacterClass.BountyHunter  => "🎯",
+        CharacterClass.Chaos         => "🌀",
+        _                            => "⚔️"
+    };
+
+    private static string GetAlignmentShort(
+        Alignment alignment) => alignment switch
+    {
+        Alignment.LawfulGood     => "LG",
+        Alignment.LawfulNeutral  => "LN",
+        Alignment.LawfulEvil     => "LE",
+        Alignment.NeutralGood    => "NG",
+        Alignment.TrueNeutral    => "TN",
+        Alignment.NeutralEvil    => "NE",
+        Alignment.ChaoticGood    => "CG",
+        Alignment.ChaoticNeutral => "CN",
+        Alignment.ChaoticEvil    => "CE",
+        _                        => "??"
+    };
+}

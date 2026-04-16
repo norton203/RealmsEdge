@@ -1,7 +1,9 @@
 ﻿@page "/"
+@inherits LayoutComponentBase
 @using RealmsEdge.Shared.Enums
 @using RealmsEdge.Shared.Services
 @inject GameStateManager GameManager
+@inject NavigationManager NavManager
 
 <div class="menu-shell">
 
@@ -161,17 +163,26 @@
             GameManager.StartNewSession();
     }
 
-    private void NewGame() =>
+    private void NewGame()
+    {
         GameManager.TransitionTo(
             GameState.CharacterCreate);
+        NavManager.NavigateTo("/create");
+    }
 
-    private void ContinueGame() =>
+    private void ContinueGame()
+    {
         GameManager.TransitionTo(
             GameState.CharacterSelect);
+        NavManager.NavigateTo("/select");
+    }
 
-    private void SelectCharacter() =>
+    private void SelectCharacter()
+    {
         GameManager.TransitionTo(
             GameState.CharacterSelect);
+        NavManager.NavigateTo("/select");
+    }
 
     private void ShowDiceRoller() =>
         _showDice = true;
@@ -184,4 +195,40 @@
 
     private void HideCredits() =>
         _showCredits = false;
+
+    private void HandleStateChanged()
+    {
+        _isPaused  = GameManager.CurrentState ==
+                     GameState.Paused;
+        _isLoading = GameManager.CurrentState ==
+                     GameState.Loading;
+
+        // Navigate to correct page based on state
+        var targetUrl = GameManager.CurrentState switch
+        {
+            GameState.MainMenu => "/",
+            GameState.CharacterCreate => "/create",
+            GameState.CharacterSelect => "/select",
+            GameState.Exploring => "/world",
+            GameState.CombatPlayerTurn or
+            GameState.CombatStart => "/combat",
+            GameState.QuestJournal => "/quests",
+            GameState.CharacterSheet => "/character",
+            _ => null
+        };
+
+        if (targetUrl != null &&
+            !NavManager.Uri.EndsWith(targetUrl))
+            NavManager.NavigateTo(targetUrl);
+
+        _loadingMessage = GameManager.CurrentState switch
+        {
+            GameState.Travelling => "Travelling...",
+            GameState.Loading => "Loading...",
+            GameState.Saving => "Saving...",
+            _ => "Please wait..."
+        };
+
+        InvokeAsync(StateHasChanged);
+    }
 }

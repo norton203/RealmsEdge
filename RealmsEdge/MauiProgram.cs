@@ -24,17 +24,22 @@ namespace RealmsEdge
     		builder.Services.AddBlazorWebViewDeveloperTools();
     		builder.Logging.AddDebug();
 #endif
+            // Singletons first
             builder.Services.AddSingleton<DiceService>();
+            builder.Services.AddSingleton(
+                WorldMap.CreateStarterWorld());
+
+            // Scoped services in dependency order
             builder.Services.AddScoped<ISoundService, SoundService>();
             builder.Services.AddScoped<CharacterValidationService>();
             builder.Services.AddScoped<CharacterService>();
             builder.Services.AddScoped<PartyService>();
-            builder.Services.AddSingleton(WorldMap.CreateStarterWorld());
             builder.Services.AddScoped<WorldService>();
             builder.Services.AddScoped<EncounterService>();
             builder.Services.AddScoped<NavigationService>();
             builder.Services.AddScoped<CombatService>();
             builder.Services.AddScoped<QuestService>();
+            builder.Services.AddScoped<GameStateManager>();
             return builder.Build();
         }
     }

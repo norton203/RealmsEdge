@@ -1,0 +1,426 @@
+﻿
+.create-shell {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 1rem;
+    gap: 0.75rem;
+}
+
+/* ── Header ── */
+.create-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.create-back {
+    font-size: 0.85rem;
+    padding: 0.3rem 0.6rem;
+    flex-shrink: 0;
+}
+
+.create-title {
+    font-size: 1.1rem;
+    text-align: center;
+    flex: 1;
+    margin: 0;
+}
+
+.create-step-indicator {
+    font-size: 0.75rem;
+    color: var(--parchment-mid);
+    font-family: var(--font-ui);
+    flex-shrink: 0;
+}
+
+/* ── Progress ── */
+.create-progress {
+    height: 4px;
+    background: var(--stone-lighter);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.create-progress-fill {
+    height: 100%;
+    background: linear-gradient( 90deg, var(--gold-dark), var(--gold-bright) );
+    border-radius: 2px;
+    transition: width 0.4s ease;
+}
+
+/* ── Content ── */
+.create-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.create-step {
+    animation: stepIn 0.3s ease;
+}
+
+.create-section {
+    margin-bottom: 0.5rem;
+}
+
+/* ── Fields ── */
+.create-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    margin-bottom: 1rem;
+}
+
+.create-label {
+    font-family: var(--font-title);
+    font-size: 0.8rem;
+    color: #3a2010;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.create-error {
+    color: var(--blood-mid);
+    font-size: 0.75rem;
+    font-style: italic;
+}
+
+.create-errors {
+    background: rgba(139,21,21,0.15);
+    border: 1px solid var(--blood-mid);
+    border-radius: var(--radius-sm);
+    padding: 0.75rem;
+    margin-top: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.create-warnings {
+    background: rgba(139,105,20,0.15);
+    border: 1px solid var(--gold-dark);
+    border-radius: var(--radius-sm);
+    padding: 0.75rem;
+    margin-top: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.create-warning {
+    color: var(--gold-mid);
+    font-size: 0.75rem;
+    font-style: italic;
+}
+
+/* ── Option Buttons ── */
+.create-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.create-option {
+    background: rgba(255,255,255,0.2);
+    border: 1px solid #9a8060;
+    border-radius: var(--radius-sm);
+    color: #2a1f0e;
+    font-family: 'Cinzel', serif;
+    font-size: 0.8rem;
+    padding: 0.4rem 0.8rem;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+    .create-option:hover {
+        background: rgba(255,255,255,0.4);
+    }
+
+.option-selected {
+    background: rgba(90,64,32,0.6) !important;
+    border-color: #5a4020 !important;
+    color: var(--parchment-cream) !important;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);
+}
+
+/* ── Race/Class Grid ── */
+.create-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    gap: 0.4rem;
+    margin-top: 0.5rem;
+}
+
+.create-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2rem;
+    padding: 0.5rem 0.25rem;
+    background: rgba(255,255,255,0.15);
+    border: 1px solid #9a8060;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    color: #2a1f0e;
+    font-family: 'Cinzel', serif;
+}
+
+    .create-card:hover {
+        background: rgba(255,255,255,0.35);
+        transform: translateY(-1px);
+    }
+
+.card-selected {
+    background: rgba(90,64,32,0.5) !important;
+    border-color: #5a4020 !important;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);
+}
+
+.card-recommended {
+    border-color: var(--gold-mid) !important;
+    background: rgba(200,150,12,0.15) !important;
+}
+
+.card-invalid {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.card-icon {
+    font-size: 1.4rem;
+    line-height: 1;
+}
+
+.card-name {
+    font-size: 0.65rem;
+    text-align: center;
+    line-height: 1.2;
+}
+
+.card-badge {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    font-size: 0.6rem;
+}
+
+.badge-invalid {
+    color: var(--blood-mid);
+}
+
+/* ── Alignment Grid ── */
+.alignment-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.4rem;
+    margin-top: 0.5rem;
+}
+
+.alignment-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
+    padding: 0.5rem;
+    background: rgba(255,255,255,0.15);
+    border: 1px solid #9a8060;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    color: #2a1f0e;
+}
+
+    .alignment-btn:hover {
+        background: rgba(255,255,255,0.35);
+    }
+
+.alignment-name {
+    font-family: 'Cinzel', serif;
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: #2a1f0e;
+}
+
+.alignment-full {
+    font-size: 0.55rem;
+    color: #5a4a30;
+    text-align: center;
+    line-height: 1.2;
+}
+
+/* ── Stat Rolling ── */
+.stat-method-toggle {
+    display: flex;
+    gap: 0.5rem;
+    margin: 0.75rem 0;
+}
+
+.stat-assignments {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    margin-top: 0.5rem;
+}
+
+.stat-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.3rem 0;
+    border-bottom: 1px solid rgba(154,128,96,0.3);
+}
+
+.stat-name {
+    font-family: 'Cinzel', serif;
+    font-size: 0.8rem;
+    color: #3a2010;
+    width: 110px;
+    flex-shrink: 0;
+}
+
+.stat-roll-display {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex: 1;
+}
+
+.stat-value {
+    font-family: var(--font-mono);
+    font-size: 1.1rem;
+    font-weight: bold;
+    min-width: 28px;
+}
+
+.stat-roll-detail {
+    font-size: 0.7rem;
+    color: #5a4a30;
+    font-family: var(--font-mono);
+}
+
+.stat-bonus {
+    font-size: 0.7rem;
+    color: #2a6a2a;
+    font-style: italic;
+}
+
+.stat-total {
+    display: flex;
+    align-items: center;
+    margin-top: 0.5rem;
+    font-family: 'Cinzel', serif;
+    font-size: 0.85rem;
+    color: #3a2010;
+    font-weight: bold;
+}
+
+/* ── Review ── */
+.review-block {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin: 0.75rem 0;
+}
+
+.review-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.3rem 0;
+    border-bottom: 1px solid rgba(154,128,96,0.3);
+}
+
+.review-label {
+    font-family: 'Cinzel', serif;
+    font-size: 0.8rem;
+    color: #5a4a30;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.review-value {
+    font-family: 'IM Fell English', Georgia, serif;
+    font-size: 0.95rem;
+    color: #2a1f0e;
+    font-weight: bold;
+}
+
+.review-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+    margin: 0.75rem 0;
+}
+
+.review-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
+    padding: 0.4rem;
+    background: rgba(255,255,255,0.2);
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(154,128,96,0.4);
+}
+
+.review-stat-name {
+    font-size: 0.6rem;
+    color: #5a4a30;
+    text-transform: uppercase;
+    font-family: 'Cinzel', serif;
+    letter-spacing: 0.05em;
+}
+
+.review-stat-value {
+    font-size: 1.2rem;
+    font-weight: bold;
+    font-family: var(--font-mono);
+}
+
+/* ── Navigation ── */
+.create-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--stone-lighter);
+    flex-shrink: 0;
+}
+
+.create-loading {
+    text-align: center;
+    font-style: italic;
+    color: #5a4a30;
+    padding: 1rem;
+    animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes stepIn {
+    from {
+        opacity: 0;
+        transform: translateX(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+}
+
+
