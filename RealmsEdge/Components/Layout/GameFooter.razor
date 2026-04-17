@@ -30,12 +30,11 @@
         }
         @if (ShowQuestJournal)
         {
-            <button class="footer-btn
-                    @HasReadyQuests ? " footer-btn-pulse" : "" )"
-                    @onclick="GoToQuestJournal"
-                    title="Quest Journal">
-                📜
-            </button>
+            <button class="@($"footer-btn {(HasReadyQuests ? "footer-btn-pulse" : "")}")"
+        @onclick="GoToQuestJournal"
+        title="Quest Journal">
+    📜
+</button>
         }
         @if (ShowCharacterSheet)
         {

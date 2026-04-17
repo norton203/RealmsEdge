@@ -1,234 +1,231 @@
-﻿@page "/"
-@inherits LayoutComponentBase
+﻿@inherits LayoutComponentBase
 @using RealmsEdge.Shared.Enums
 @using RealmsEdge.Shared.Services
 @inject GameStateManager GameManager
 @inject NavigationManager NavManager
+@implements IDisposable
 
-<div class="menu-shell">
+<MudThemeProvider Theme="_realmTheme" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
 
-    <!-- Background Particles -->
-    <div class="menu-particles">
-        @for (int i = 0; i < 12; i++)
-        {
-            <div class="particle particle-@i"></div>
-        }
+<div class="realm-shell">
+    <div class="realm-background @GetBackgroundClass()">
+        <div class="realm-background-overlay"></div>
     </div>
 
-    <!-- Title Block -->
-    <div class="menu-title-block">
-        <div class="menu-emblem">⚔️</div>
-        <h1 class="menu-title">Realm's Edge</h1>
-        <div class="menu-subtitle">
-            <span class="menu-subtitle-line">
-                ── Where Legends Are Forged ──
-            </span>
-        </div>
-    </div>
-
-    <!-- Main Menu Buttons -->
-    <div class="menu-buttons">
-        <button class="menu-btn menu-btn-primary"
-                @onclick="NewGame">
-            <span class="menu-btn-icon">⚔️</span>
-            <span class="menu-btn-text">New Game</span>
-            <span class="menu-btn-arrow">›</span>
-        </button>
-
-        <button class="menu-btn"
-                @onclick="ContinueGame"
-                disabled="@(!HasSavedGame)">
-            <span class="menu-btn-icon">📖</span>
-            <span class="menu-btn-text">Continue</span>
-            <span class="menu-btn-arrow">›</span>
-        </button>
-
-        <button class="menu-btn"
-                @onclick="SelectCharacter">
-            <span class="menu-btn-icon">👤</span>
-            <span class="menu-btn-text">
-                Characters
-            </span>
-            <span class="menu-btn-arrow">›</span>
-        </button>
-
-        <button class="menu-btn"
-                @onclick="ShowDiceRoller">
-            <span class="menu-btn-icon">🎲</span>
-            <span class="menu-btn-text">
-                Dice Roller
-            </span>
-            <span class="menu-btn-arrow">›</span>
-        </button>
-
-        <button class="menu-btn menu-btn-danger"
-                @onclick="ShowCredits">
-            <span class="menu-btn-icon">📜</span>
-            <span class="menu-btn-text">Credits</span>
-            <span class="menu-btn-arrow">›</span>
-        </button>
-    </div>
-
-    <!-- Version Footer -->
-    <div class="menu-footer">
-        <span class="menu-version">
-            Realm's Edge · v0.1 Alpha
-        </span>
-        <span class="menu-footer-divider">·</span>
-        <span class="menu-tagline">
-            Fate favours the bold
-        </span>
-    </div>
-
-    <!-- Dice Roller Panel -->
-    @if (_showDice)
+    @if (ShowHeader)
     {
-        <div class="menu-overlay"
-             @onclick="HideDiceRoller">
-            <div class="menu-panel paper"
-                 @onclick:stopPropagation="true">
-                <h2>🎲 Dice Roller</h2>
-                <hr />
-                <DiceRoller
-                    ShowHistory="true"
-                    ShowRollButton="true" />
-                <div style="margin-top:1rem;
-                            text-align:center;">
-                    <button class="btn-parchment"
-                            @onclick="HideDiceRoller">
-                        Close
+        <header class="realm-header">
+            <GameHeader />
+        </header>
+    }
+
+    <main class="realm-main @(IsFullscreen ? "main-fullscreen" : "main-padded")">
+        @Body
+    </main>
+
+    @if (ShowFooter)
+    {
+        <footer class="realm-footer">
+            <GameFooter />
+        </footer>
+    }
+
+    <div class="realm-notifications">
+        <NotificationBar />
+    </div>
+
+    @if (_isPaused)
+    {
+        <div class="realm-pause-overlay">
+            <div class="realm-pause-panel paper">
+                <h2 class="text-center">⏸️ Paused</h2>
+                <div class="realm-pause-actions">
+                    <button class="btn-realm"
+                            @onclick="Resume">
+                        ▶ Resume
+                    </button>
+                    <button class="btn-ghost"
+                            @onclick="GoToMainMenu">
+                        🏰 Main Menu
                     </button>
                 </div>
             </div>
         </div>
     }
 
-    <!-- Credits Panel -->
-    @if (_showCredits)
+    @if (_isLoading)
     {
-        <div class="menu-overlay"
-             @onclick="HideCredits">
-            <div class="menu-panel paper"
-                 @onclick:stopPropagation="true">
-                <h2 class="text-center">
-                    📜 Credits
-                </h2>
-                <hr />
-                <div class="credits-content">
-                    <p class="text-center text-italic">
-                        Built with ⚔️ and 🎲
-                    </p>
-                    <div class="divider-ornate">✦</div>
-                    <p>
-                        <strong>Realm's Edge</strong>
-                        is a dark fantasy RPG inspired
-                        by the classics — L.O.R.D,
-                        Baldur's Gate, D&D and
-                        Warhammer.
-                    </p>
-                    <div class="divider-ornate">✦</div>
-                    <p class="text-small">
-                        Built with .NET MAUI Blazor ·
-                        C# · SVG · CSS Filters
-                    </p>
-                    <p class="text-small text-center">
-                        Sound effects from OpenGameArt
-                    </p>
-                </div>
-                <div style="margin-top:1rem;
-                            text-align:center;">
-                    <button class="btn-parchment"
-                            @onclick="HideCredits">
-                        Close
-                    </button>
-                </div>
+        <div class="realm-loading-overlay">
+            <div class="realm-loading-spinner">
+                <span class="spinner-emblem">⚔️</span>
+                <span class="spinner-text">
+                    @_loadingMessage
+                </span>
             </div>
         </div>
     }
-
 </div>
 
-
 @code {
-    private bool _showDice    = false;
-    private bool _showCredits = false;
+    private bool _isPaused;
+    private bool _isLoading;
+    private string _loadingMessage = "Please wait...";
 
-    private bool HasSavedGame => false;
-        // Will connect to save system later
+    private bool ShowHeader =>
+        GameManager.HasSession &&
+        GameManager.CurrentState != GameState.MainMenu &&
+        GameManager.CurrentState != GameState.CharacterCreate &&
+        GameManager.CurrentState != GameState.CharacterSelect;
+
+    private bool ShowFooter =>
+        GameManager.HasSession &&
+        GameManager.CurrentState != GameState.MainMenu &&
+        GameManager.CurrentState != GameState.CharacterCreate &&
+        GameManager.CurrentState != GameState.CharacterSelect;
+
+    private bool IsFullscreen =>
+        GameManager.CurrentState == GameState.CombatPlayerTurn ||
+        GameManager.CurrentState == GameState.CombatEnemyTurn ||
+        GameManager.CurrentState == GameState.MainMenu;
+
+    private string GetBackgroundClass() =>
+        GameManager.CurrentState switch
+        {
+            GameState.MainMenu or
+            GameState.CharacterCreate or
+            GameState.CharacterSelect => "bg-menu",
+            GameState.CombatPlayerTurn or
+            GameState.CombatEnemyTurn or
+            GameState.CombatStart => "bg-combat",
+            GameState.Exploring when
+                GameManager.HasSession &&
+                GameManager.Session.IsInDungeon => "bg-dungeon",
+            GameState.Exploring => "bg-world",
+            _ => "bg-menu"
+        };
 
     protected override void OnInitialized()
     {
-        // Start a session if none exists
+        GameManager.OnStateChanged += HandleStateChanged;
         if (!GameManager.HasSession)
             GameManager.StartNewSession();
     }
 
-    private void NewGame()
-    {
-        GameManager.TransitionTo(
-            GameState.CharacterCreate);
-        NavManager.NavigateTo("/create");
-    }
-
-    private void ContinueGame()
-    {
-        GameManager.TransitionTo(
-            GameState.CharacterSelect);
-        NavManager.NavigateTo("/select");
-    }
-
-    private void SelectCharacter()
-    {
-        GameManager.TransitionTo(
-            GameState.CharacterSelect);
-        NavManager.NavigateTo("/select");
-    }
-
-    private void ShowDiceRoller() =>
-        _showDice = true;
-
-    private void HideDiceRoller() =>
-        _showDice = false;
-
-    private void ShowCredits() =>
-        _showCredits = true;
-
-    private void HideCredits() =>
-        _showCredits = false;
-
     private void HandleStateChanged()
     {
-        _isPaused  = GameManager.CurrentState ==
-                     GameState.Paused;
-        _isLoading = GameManager.CurrentState ==
-                     GameState.Loading;
-
-        // Navigate to correct page based on state
-        var targetUrl = GameManager.CurrentState switch
-        {
-            GameState.MainMenu => "/",
-            GameState.CharacterCreate => "/create",
-            GameState.CharacterSelect => "/select",
-            GameState.Exploring => "/world",
-            GameState.CombatPlayerTurn or
-            GameState.CombatStart => "/combat",
-            GameState.QuestJournal => "/quests",
-            GameState.CharacterSheet => "/character",
-            _ => null
-        };
-
-        if (targetUrl != null &&
-            !NavManager.Uri.EndsWith(targetUrl))
-            NavManager.NavigateTo(targetUrl);
+        _isPaused  = GameManager.CurrentState == GameState.Paused;
+        _isLoading = GameManager.CurrentState == GameState.Loading ||
+                     GameManager.CurrentState == GameState.Travelling;
 
         _loadingMessage = GameManager.CurrentState switch
         {
             GameState.Travelling => "Travelling...",
-            GameState.Loading => "Loading...",
-            GameState.Saving => "Saving...",
-            _ => "Please wait..."
+            GameState.Loading    => "Loading...",
+            GameState.Saving     => "Saving...",
+            _                    => "Please wait..."
         };
+
+        // Navigate to correct page based on state
+        var target = GameManager.CurrentState switch
+        {
+            GameState.MainMenu        => "/",
+            GameState.CharacterCreate => "/create",
+            GameState.CharacterSelect => "/select",
+            GameState.Exploring       => "/world",
+            GameState.CombatPlayerTurn or
+            GameState.CombatStart      => "/combat",
+            GameState.QuestJournal     => "/quests",
+            _                          => null
+        };
+
+        if (target != null && !NavManager.Uri.EndsWith(target))
+            NavManager.NavigateTo(target);
 
         InvokeAsync(StateHasChanged);
     }
+
+    private void Resume() => GameManager.Resume();
+
+    private void GoToMainMenu()
+    {
+        GameManager.TransitionTo(GameState.MainMenu);
+        NavManager.NavigateTo("/");
+    }
+
+    public void Dispose()
+    {
+        GameManager.OnStateChanged -= HandleStateChanged;
+    }
+    private MudTheme _realmTheme = new MudTheme
+{
+    PaletteLight = new PaletteLight
+    {
+        Primary         = "#F0C040",
+        PrimaryDarken   = "#8B6914",
+        Secondary       = "#C0430A",
+        Background      = "#0a0a0f",
+        Surface         = "#1a1a2e",
+        DrawerBackground = "#111118",
+        AppbarBackground = "#111118",
+        TextPrimary     = "#D4C9A8",
+        TextSecondary   = "#8B7355",
+        ActionDefault   = "#F0C040",
+        DividerColor    = "#2e2e50",
+        OverlayDark     = "rgba(0,0,0,0.75)"
+    },
+    PaletteDark = new PaletteDark
+    {
+        Primary         = "#F0C040",
+        PrimaryDarken   = "#8B6914",
+        Secondary       = "#C0430A",
+        Background      = "#0a0a0f",
+        Surface         = "#1a1a2e",
+        DrawerBackground = "#111118",
+        AppbarBackground = "#111118",
+        TextPrimary     = "#D4C9A8",
+        TextSecondary   = "#8B7355",
+        ActionDefault   = "#F0C040",
+        DividerColor    = "#2e2e50",
+    },
+    Typography = new Typography
+    {
+        Default = new DefaultTypography
+        {
+            FontFamily = new[]
+                { "IM Fell English", "Georgia", "serif" }
+        },
+        H1 = new H1Typography
+        {
+            FontFamily = new[]
+                { "Cinzel", "MedievalSharp", "serif" },
+            FontSize   = "2rem"
+        },
+        H2 = new H2Typography
+        {
+            FontFamily = new[]
+                { "Cinzel", "MedievalSharp", "serif" },
+            FontSize   = "1.5rem"
+        },
+        H3 = new H3Typography
+        {
+            FontFamily = new[]
+                { "Cinzel", "MedievalSharp", "serif" },
+            FontSize   = "1.25rem"
+        },
+        Button = new ButtonTypography
+        {
+            FontFamily    = new[]
+                { "Cinzel", "MedievalSharp", "serif" },
+            FontSize      = "0.85rem",
+            LetterSpacing = "0.08em"
+        }
+    },
+    Shape = new Shape
+    {
+        BorderRadius = 6
+    }
+};
 }

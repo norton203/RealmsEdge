@@ -197,9 +197,8 @@ namespace RealmsEdge.Shared.Services
         // World Navigation
         // =====================
 
-        public async Task<(bool Success,
-            string Message)> TravelTo(
-            Guid destinationId)
+       
+        public async Task<(bool Success, string Message)> TravelTo(Guid destinationId)
         {
             if (!Session.HasActivePlayer)
                 return (false, "No active player.");

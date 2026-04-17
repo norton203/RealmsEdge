@@ -1,0 +1,673 @@
+﻿@page "/combat"
+@using RealmsEdge.Shared.Enums
+@using RealmsEdge.Shared.Models.Characters
+@using RealmsEdge.Shared.Models.Combat
+@using RealmsEdge.Shared.Models.Session
+@using RealmsEdge.Shared.Services
+@inject GameStateManager GameManager
+@inject NavigationManager NavManager
+@implements IDisposable
+
+@if (!GameManager.HasSession ||
+     GameManager.Session.ActiveCombat == null)
+{
+    <div class="combat-error">
+        <span>⚔️</span>
+        <p>No active combat.</p>
+        <button class="btn-parchment"
+                @onclick='() => NavManager.NavigateTo("/world")'>
+            Return
+        </button>
+    </div>
+}
+else
+{
+    var combat  = GameManager.Session.ActiveCombat;
+    var player  = GameManager.Session.ActivePlayer;
+    var current = combat.CurrentCombatant;
+
+    <div class="combat-shell">
+
+        <!-- ── Top Bar — Round + Phase ── -->
+        <div class="combat-topbar">
+            <div class="combat-topbar-left">
+                <span class="combat-round-label">
+                    Round
+                </span>
+                <span class="combat-round-num">
+                    @combat.CurrentRound
+                </span>
+                <span class="combat-phase">
+                    @combat.PhaseDisplay
+                </span>
+            </div>
+            <div class="combat-topbar-centre">
+                <span class="combat-battle-name">
+                    ⚔️ @combat.BattleName
+                </span>
+            </div>
+            <div class="combat-topbar-right">
+                <span class="combat-stats">
+                    Hits: @_hits ·
+                    Crits: @_crits ·
+                    Dmg: @_totalDmg
+                </span>
+            </div>
+        </div>
+
+        <!-- ── Main Body ── -->
+        <div class="combat-body">
+
+            <!-- Left — Combatants ── -->
+            <div class="combat-left">
+
+                <!-- Players -->
+                <div class="combat-team-block">
+                    <div class="team-title team-players">
+                        ⚔️ Your Party
+                    </div>
+                    @foreach (var c in
+                        combat.PlayerCombatants)
+                    {
+                        <div class="combatant-row
+                            @(c.CombatId == current?.CombatId
+                                ? "combatant-active" : "")
+                            @(!c.IsAlive ? "combatant-dead" : "")">
+
+                            <div class="combatant-turn-arrow">
+                                @(c.CombatId ==
+                                  current?.CombatId ? "▶" : "")
+                            </div>
+
+                            <div class="combatant-portrait">
+                                @GetClassEmoji(c.Character.Class)
+                            </div>
+
+                            <div class="combatant-info">
+                                <div class="combatant-name">
+                                    @c.Character.Name
+                                </div>
+                                <div class="combatant-sub">
+                                    @c.Character.Race
+                                    @c.Character.Class
+                                    · @c.StateDisplay
+                                </div>
+                                <!-- HP bar -->
+                                <div class="combatant-hp-wrap">
+                                    <div class="combatant-hp-bar"
+                                         style="width:@c.Character
+                                             .Stats.HealthPercent%;
+                                         background:@HpGradient(c)">
+                                    </div>
+                                </div>
+                                <div class="combatant-hp-text">
+                                    ❤️ @c.Character.Stats
+                                        .CurrentHitPoints /
+                                    @c.Character.Stats.MaxHitPoints
+                                    · AC @c.EffectiveAC
+                                    · Init @c.InitiativeTotal
+                                </div>
+                                @if (c.ActiveEffects.Any())
+                                {
+                                    <div class="combatant-effects">
+                                        @foreach (var e in
+                                            c.ActiveEffects.Take(3))
+                                        {
+                                            <span class="effect-badge">
+                                                @e.Status
+                                            </span>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <!-- Enemies -->
+                <div class="combat-team-block">
+                    <div class="team-title team-enemies">
+                        💀 Enemies
+                    </div>
+                    @foreach (var c in
+                        combat.EnemyCombatants)
+                    {
+                        <div class="combatant-row
+                            @(c.CombatId == current?.CombatId
+                                ? "combatant-active enemy-active" : "")
+                            @(!c.IsAlive ? "combatant-dead" : "")
+                            @(c.IsAlive &&
+                              _selectedTarget?.CombatId == c.CombatId
+                                ? "combatant-targeted" : "")"
+                             @onclick="() => SelectTarget(c)">
+
+                            <div class="combatant-turn-arrow enemy-arrow">
+                                @(c.CombatId ==
+                                  current?.CombatId ? "▶" : "")
+                            </div>
+
+                            <div class="combatant-portrait">
+                                @GetRaceEmoji(c.Character.Race)
+                            </div>
+
+                            <div class="combatant-info">
+                                <div class="combatant-name">
+                                    @c.Character.Name
+                                    @if (_selectedTarget?.CombatId
+                                         == c.CombatId)
+                                    {
+                                        <span class="target-marker">
+                                            🎯
+                                        </span>
+                                    }
+                                </div>
+                                <div class="combatant-sub">
+                                    @c.Character.Race · @c.StateDisplay
+                                </div>
+                                <div class="combatant-hp-wrap">
+                                    <div class="combatant-hp-bar enemy-hp"
+                                         style="width:@c.Character
+                                             .Stats.HealthPercent%">
+                                    </div>
+                                </div>
+                                <div class="combatant-hp-text">
+                                    ❤️ @c.Character.Stats
+                                        .CurrentHitPoints /
+                                    @c.Character.Stats.MaxHitPoints
+                                    · AC @c.EffectiveAC
+                                </div>
+                                @if (c.ActiveEffects.Any())
+                                {
+                                    <div class="combatant-effects">
+                                        @foreach (var e in
+                                            c.ActiveEffects.Take(3))
+                                        {
+                                            <span class="effect-badge
+                                                effect-bad">
+                                                @e.Status
+                                            </span>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+
+            </div>
+
+            <!-- Centre — Log ── -->
+            <div class="combat-centre">
+                <div class="combat-log-title">
+                    📋 Combat Log
+                </div>
+                <div class="combat-log" id="combatLog">
+                    @foreach (var entry in
+                        combat.GetRecentLog(50)
+                              .AsEnumerable()
+                              .Reverse())
+                    {
+                        <div class="combat-log-entry
+                            @GetLogClass(entry)">
+                            @entry
+                        </div>
+                    }
+                    @if (!combat.CombatLog.Any())
+                    {
+                        <div class="combat-log-empty">
+                            Combat begins...
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Right — Actions ── -->
+            <div class="combat-right">
+
+                @if (_resultMessage != null)
+                {
+                    <!-- Combat Over -->
+                    <div class="combat-result-panel
+                        @(_isVictory ? "result-victory" : "result-defeat")">
+                        <div class="result-icon">
+                            @(_isVictory ? "🏆" : "💀")
+                        </div>
+                        <div class="result-title">
+                            @(_isVictory
+                                ? "Victory!"
+                                : "Defeated!")
+                        </div>
+                        <div class="result-msg">
+                            @_resultMessage
+                        </div>
+                        @if (_xpAwarded > 0)
+                        {
+                            <div class="result-xp">
+                                +@_xpAwarded XP
+                            </div>
+                        }
+                        @if (_goldAwarded > 0)
+                        {
+                            <div class="result-gold">
+                                +@_goldAwarded gold
+                            </div>
+                        }
+                        <button class="btn-realm result-btn"
+                                @onclick="LeaveCombat">
+                            Continue →
+                        </button>
+                    </div>
+                }
+                else if (combat.Phase ==
+                         CombatPhase.PlayerDecision &&
+                         current?.IsPlayerControlled == true)
+                {
+                    <!-- Player Turn -->
+                    <div class="action-panel">
+                        <div class="action-panel-title">
+                            ⚔️ @current.Character.Name's Turn
+                        </div>
+
+                        <div class="action-resources">
+                            <span class="res-hp">
+                                ❤️ @current.Character.Stats
+                                    .CurrentHitPoints /
+                                @current.Character.Stats.MaxHitPoints
+                            </span>
+                            @if (current.Character.Stats.MaxMana > 0)
+                            {
+                                <span class="res-mp">
+                                    ✨ @current.Character.Stats
+                                        .CurrentMana /
+                                    @current.Character.Stats.MaxMana
+                                </span>
+                            }
+                            <span class="res-ac">
+                                🛡️ AC @current.EffectiveAC
+                            </span>
+                        </div>
+
+                        @if (_selectedTarget != null)
+                        {
+                            <div class="target-info">
+                                🎯 Target:
+                                <strong>
+                                    @_selectedTarget.Character.Name
+                                </strong>
+                                (AC @_selectedTarget.EffectiveAC ·
+                                @_selectedTarget.Character
+                                    .Stats.CurrentHitPoints HP)
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="target-hint">
+                                Click an enemy to target them
+                            </div>
+                        }
+
+                        <div class="action-divider">
+                            Attack
+                        </div>
+                        <div class="action-grid">
+                            <button class="act-btn act-attack"
+                                    @onclick="MeleeAttack"
+                                    disabled="@(_selectedTarget == null || _busy)">
+                                ⚔️ Melee Attack
+                            </button>
+                            <button class="act-btn act-attack"
+                                    @onclick="RangedAttack"
+                                    disabled="@(_selectedTarget == null || _busy)">
+                                🏹 Ranged Attack
+                            </button>
+                            <button class="act-btn act-attack"
+                                    @onclick="PowerAttack"
+                                    disabled="@(_selectedTarget == null || _busy)">
+                                💥 Power Attack
+                            </button>
+                        </div>
+
+                        <div class="action-divider">Magic</div>
+                        <div class="action-grid">
+                            <button class="act-btn act-magic"
+                                    @onclick="CastSpell"
+                                    disabled="@(_busy || current.Character
+                                        .Stats.CurrentMana < 5)">
+                                ✨ Cast Spell
+                            </button>
+                            <button class="act-btn act-heal"
+                                    @onclick="HealAlly"
+                                    disabled="@(_busy || current.Character
+                                        .Stats.CurrentMana < 4)">
+                                💚 Heal Ally
+                            </button>
+                        </div>
+
+                        <div class="action-divider">
+                            Defence
+                        </div>
+                        <div class="action-grid">
+                            <button class="act-btn act-defend"
+                                    @onclick="Defend"
+                                    disabled="@_busy">
+                                🛡️ Defend (+4 AC)
+                            </button>
+                            <button class="act-btn act-defend"
+                                    @onclick="UsePotion"
+                                    disabled="@_busy">
+                                🧪 Use Potion
+                            </button>
+                        </div>
+
+                        @if (current.Character.Class ==
+                             CharacterClass.Barbarian)
+                        {
+                            <div class="action-divider">
+                                Special
+                            </div>
+                            <div class="action-grid">
+                                <button class="act-btn act-special"
+                                        @onclick="Rage"
+                                        disabled="@(_busy || current.IsRaging)">
+                                    😡 @(current.IsRaging
+                                        ? "Raging!"
+                                        : "Rage")
+                                </button>
+                            </div>
+                        }
+
+                        @if (current.Character.Class ==
+                             CharacterClass.Bard)
+                        {
+                            <div class="action-divider">
+                                Special
+                            </div>
+                            <div class="action-grid">
+                                <button class="act-btn act-special"
+                                        @onclick="BardSong"
+                                        disabled="@_busy">
+                                    🎵 Bard Song
+                                </button>
+                            </div>
+                        }
+
+                        <div class="action-divider">Other</div>
+                        <div class="action-grid">
+                            <button class="act-btn act-wait"
+                                    @onclick="Wait"
+                                    disabled="@_busy">
+                                ⏳ Wait
+                            </button>
+                            <button class="act-btn act-flee"
+                                    @onclick="Flee"
+                                    disabled="@_busy">
+                                🏃 Flee
+                            </button>
+                        </div>
+
+                    </div>
+                }
+                else
+                {
+                    <!-- Waiting for enemy / processing -->
+                    <div class="action-panel action-waiting">
+                        <div class="waiting-icon">⚙️</div>
+                        <div class="waiting-text">
+                            @combat.PhaseDisplay
+                        </div>
+                        @if (_busy)
+                        {
+                            <div class="waiting-sub">
+                                Processing...
+                            </div>
+                        }
+                    </div>
+                }
+
+            </div>
+
+        </div>
+
+    </div>
+}
+
+@code {
+    private Combatant?  _selectedTarget;
+    private bool        _busy;
+    private string?     _resultMessage;
+    private bool        _isVictory;
+    private long        _xpAwarded;
+    private int         _goldAwarded;
+
+    // Running stats for top bar
+    private int _hits;
+    private int _crits;
+    private int _totalDmg;
+
+    // ── Lifecycle ────────────────────────────────
+
+    protected override void OnInitialized()
+    {
+        GameManager.OnStateChanged   += HandleStateChanged;
+        GameManager.OnSessionUpdated += HandleStateChanged;
+        AutoSelectTarget();
+    }
+
+    private void HandleStateChanged()
+    {
+        AutoSelectTarget();
+        UpdateStats();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void AutoSelectTarget()
+    {
+        if (!GameManager.HasSession) return;
+        var combat = GameManager.Session.ActiveCombat;
+        if (combat == null) return;
+
+        // Keep selected target if still alive
+        if (_selectedTarget != null &&
+            _selectedTarget.IsAlive &&
+            combat.ActiveEnemies.Any(e =>
+                e.CombatId == _selectedTarget.CombatId))
+            return;
+
+        // Auto-select lowest HP enemy
+        _selectedTarget = combat
+            .GetLowestHpTarget(CombatTeam.Enemies);
+    }
+
+    private void UpdateStats()
+    {
+        if (!GameManager.HasSession) return;
+        var combat = GameManager.Session.ActiveCombat;
+        if (combat == null) return;
+
+        var actions = combat.Rounds
+            .SelectMany(r => r.Actions).ToList();
+
+        _hits     = actions.Count(a =>
+            a.Result == ActionResult.Hit ||
+            a.Result == ActionResult.CriticalHit);
+        _crits    = actions.Count(a =>
+            a.Result == ActionResult.CriticalHit);
+        _totalDmg = actions.Sum(a => a.DamageTotal);
+    }
+
+    private void SelectTarget(Combatant c)
+    {
+        if (!c.IsAlive) return;
+        _selectedTarget = c;
+        StateHasChanged();
+    }
+
+    // ── Action Helpers ────────────────────────────
+
+    private Combatant? GetCurrentPlayerCombatant()
+    {
+        if (!GameManager.HasSession) return null;
+        var combat  = GameManager.Session.ActiveCombat;
+        var player  = GameManager.Session.ActivePlayer;
+        if (combat == null || player == null) return null;
+        return combat.GetCombatantByCharacterId(player.Id);
+    }
+
+    private async Task DoAction(
+        CombatActionType action,
+        int? targetId = null)
+    {
+        if (_busy) return;
+        _busy = true;
+        StateHasChanged();
+
+        var actor = GetCurrentPlayerCombatant();
+        if (actor == null) { _busy = false; return; }
+
+        var result = await GameManager.ProcessCombatAction(
+            action,
+            actor.CombatId,
+            targetId);
+
+        HandleResult(result);
+        _busy = false;
+        StateHasChanged();
+    }
+
+    private void HandleResult(CombatResult result)
+    {
+        UpdateStats();
+
+        if (!result.IsOver) return;
+
+        _isVictory    = result.Outcome == CombatPhase.Victory;
+        _xpAwarded    = result.TotalXpAwarded;
+        _goldAwarded  = result.TotalGoldAwarded;
+        _resultMessage = result.Message;
+    }
+
+    // ── Actions ───────────────────────────────────
+
+    private Task MeleeAttack() =>
+        DoAction(CombatActionType.MeleeAttack,
+                 _selectedTarget?.CombatId);
+
+    private Task RangedAttack() =>
+        DoAction(CombatActionType.RangedAttack,
+                 _selectedTarget?.CombatId);
+
+    private Task PowerAttack() =>
+        DoAction(CombatActionType.PowerAttack,
+                 _selectedTarget?.CombatId);
+
+    private Task CastSpell() =>
+        DoAction(CombatActionType.CastSpell,
+                 _selectedTarget?.CombatId);
+
+    private Task HealAlly()
+    {
+        // Heal the most wounded ally
+        var combat = GameManager.Session.ActiveCombat;
+        var wounded = combat?.GetLowestHpTarget(
+            CombatTeam.Players);
+        return DoAction(CombatActionType.HealAlly,
+                        wounded?.CombatId);
+    }
+
+    private Task Defend() =>
+        DoAction(CombatActionType.Defend);
+
+    private Task UsePotion() =>
+        DoAction(CombatActionType.UsePotion);
+
+    private Task Rage() =>
+        DoAction(CombatActionType.Rage);
+
+    private Task BardSong() =>
+        DoAction(CombatActionType.BardSong);
+
+    private Task Wait() =>
+        DoAction(CombatActionType.Wait);
+
+    private Task Flee() =>
+        DoAction(CombatActionType.Flee);
+
+    private void LeaveCombat()
+    {
+        GameManager.TransitionTo(GameState.Exploring);
+        NavManager.NavigateTo("/world");
+    }
+
+    // ── Display Helpers ───────────────────────────
+
+    private string HpGradient(Combatant c) =>
+        c.Character.Stats.HealthPercent switch
+        {
+            >= 75 => "linear-gradient(90deg,#1a6a1a,#44cc44)",
+            >= 50 => "linear-gradient(90deg,#6a6a1a,#cccc44)",
+            >= 25 => "linear-gradient(90deg,#6a3a1a,#cc7744)",
+            _     => "linear-gradient(90deg,#6a1a1a,#cc4444)"
+        };
+
+    private string GetLogClass(string entry)
+    {
+        if (entry.Contains("CRIT") ||
+            entry.Contains("critical", StringComparison
+                .OrdinalIgnoreCase))
+            return "log-crit";
+        if (entry.Contains("slain") ||
+            entry.Contains("defeated") ||
+            entry.Contains("dead", StringComparison
+                .OrdinalIgnoreCase))
+            return "log-death";
+        if (entry.Contains("miss", StringComparison
+                .OrdinalIgnoreCase))
+            return "log-miss";
+        if (entry.Contains("heal") ||
+            entry.Contains("restoring"))
+            return "log-heal";
+        if (entry.Contains("Round"))
+            return "log-round";
+        return "";
+    }
+
+    private string GetClassEmoji(CharacterClass c) =>
+        c switch
+        {
+            CharacterClass.Fighter or
+            CharacterClass.Barbarian  => "⚔️",
+            CharacterClass.Paladin    => "🛡️",
+            CharacterClass.Ranger     => "🏹",
+            CharacterClass.Rogue or
+            CharacterClass.Assassin   => "🗡️",
+            CharacterClass.Mage or
+            CharacterClass.Sorcerer or
+            CharacterClass.Illusionist => "🔮",
+            CharacterClass.Cleric or
+            CharacterClass.Druid or
+            CharacterClass.Shaman     => "✨",
+            CharacterClass.Necromancer => "💀",
+            CharacterClass.Bard        => "🎵",
+            CharacterClass.Warlock     => "🌑",
+            _                          => "⚔️"
+        };
+
+    private string GetRaceEmoji(CharacterRace r) =>
+        r switch
+        {
+            CharacterRace.Goblin  => "👺",
+            CharacterRace.Orc or
+            CharacterRace.HalfOrc => "👹",
+            CharacterRace.Undead  => "💀",
+            CharacterRace.Vampire => "🧛",
+            CharacterRace.Demon   => "😈",
+            CharacterRace.Dragonborn => "🐉",
+            _                        => "👤"
+        };
+
+    public void Dispose()
+    {
+        GameManager.OnStateChanged   -= HandleStateChanged;
+        GameManager.OnSessionUpdated -= HandleStateChanged;
+    }
+}

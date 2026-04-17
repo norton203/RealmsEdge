@@ -33,62 +33,85 @@
     <div class="create-content">
 
         <!-- Step 1 — Identity -->
-        @if (_step == 1)
-        {
-            <div class="create-step paper">
-                <h2>📜 Your Identity</h2>
-                <hr />
+        <!-- Step 1 — Identity -->
+@if (_step == 1)
+{
+    <div class="create-step">
+        <MudText Typo="Typo.h3"
+                 Class="step-heading">
+            ✏️ Name Your Legend
+        </MudText>
 
-                <div class="create-field">
-                    <label class="create-label">
-                        Player Name
-                    </label>
-                    <input class="input-parchment"
-                           @bind="_playerName"
-                           placeholder="Your name..."
-                           maxlength="24" />
-                </div>
+        <MudText Typo="Typo.body2"
+                 Class="step-subtext">
+            Choose wisely — this name will echo
+            through the ages.
+        </MudText>
 
-                <div class="create-field">
-                    <label class="create-label">
-                        Character Name
-                    </label>
-                    <input class="input-parchment"
-                           @bind="_characterName"
-                           placeholder="Hero's name..."
-                           maxlength="24" />
-                    @if (_nameError != null)
-                    {
-                        <span class="create-error">
-                            @_nameError
-                        </span>
-                    }
-                </div>
+        <MudTextField
+            @bind-Value="_characterName"
+            Label="Character Name"
+            Placeholder="e.g. Aldric Stonefist"
+            Variant="Variant.Outlined"
+            Margin="Margin.Normal"
+            FullWidth="true"
+            MaxLength="24"
+            Adornment="Adornment.Start"
+            AdornmentIcon="@Icons.Material.Filled.Person"
+            HelperText="2–24 characters, letters only"
+            Error="@_nameErrors.Any()"
+            ErrorText="@(_nameErrors.FirstOrDefault() ?? "")"
+            Class="mud-realm-input" />
 
-                <div class="create-field">
-                    <label class="create-label">
-                        Gender
-                    </label>
-                    <div class="create-options">
-                        @foreach (var gender in
-                            Enum.GetValues<Gender>()
-                                .Where(g =>
-                                    g != Gender.None))
-                        {
-                            <button class="create-option
-                                @(_gender == gender
-                                    ? "option-selected"
-                                    : "")"
-                                    @onclick="() =>
-                                        _gender = gender">
-                                @gender.ToString()
-                            </button>
-                        }
-                    </div>
-                </div>
-            </div>
-        }
+        <MudTextField
+            @bind-Value="_playerName"
+            Label="Your Name (Player)"
+            Placeholder="e.g. Norton"
+            Variant="Variant.Outlined"
+            Margin="Margin.Normal"
+            FullWidth="true"
+            MaxLength="32"
+            Adornment="Adornment.Start"
+            AdornmentIcon="@Icons.Material.Filled.AccountCircle"
+            Class="mud-realm-input" />
 
+        <MudSelect
+            @bind-Value="_gender"
+            Label="Gender"
+            Variant="Variant.Outlined"
+            Margin="Margin.Normal"
+            FullWidth="true"
+            Class="mud-realm-input">
+            @foreach (var g in Enum.GetValues<Gender>()
+                .Where(g => g != Gender.None))
+            {
+                <MudSelectItem Value="@g">
+                    @g
+                </MudSelectItem>
+            }
+        </MudSelect>
+
+       <div class="step-nav">
+    <MudButton
+        Variant="Variant.Outlined"
+        Color="Color.Default"
+        StartIcon="@Icons.Material.Filled.ArrowBack"
+        OnClick="PrevStep"
+        Class="btn-realm-ghost">
+        Back
+    </MudButton>
+    <MudButton
+        Variant="Variant.Filled"
+        Color="Color.Secondary"
+        EndIcon="@Icons.Material.Filled.AutoAwesome"
+        OnClick="CreateCharacter"
+        Disabled="@(_busy || !_validationResult.IsValid)"
+        Class="btn-realm-primary">
+        @(_busy ? "Creating..." : "Begin Adventure")
+    </MudButton>
+</div>
+    </div>
+}
         <!-- Step 2 — Race & Class -->
         @if (_step == 2)
         {

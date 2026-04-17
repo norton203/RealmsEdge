@@ -258,3 +258,113 @@ p {
         right: 0.75rem;
         top: 0.5rem;
     }
+/* ── MudBlazor Realm Overrides ── */
+
+/* Input fields */
+.mud-realm-input .mud-input-outlined
+.mud-notched-outline {
+    border-color: var(--stone-lighter) !important;
+}
+
+.mud-realm-input:hover .mud-input-outlined
+.mud-notched-outline {
+    border-color: var(--gold-dark) !important;
+}
+
+.mud-realm-input.mud-input-control-focused
+.mud-notched-outline {
+    border-color: var(--gold-bright) !important;
+    box-shadow: 0 0 0 2px rgba(240,192,64,0.15);
+}
+
+.mud-realm-input .mud-input {
+    color: var(--parchment-light) !important;
+    font-family: var(--font-body) !important;
+    background: rgba(10,10,20,0.6) !important;
+}
+
+.mud-realm-input .mud-label {
+    color: var(--parchment-dark) !important;
+    font-family: var(--font-ui) !important;
+}
+
+.mud-realm-input .mud-input-adornment {
+    color: var(--gold-dark) !important;
+}
+
+.mud-realm-input .mud-helper-text {
+    color: var(--parchment-dark) !important;
+    font-style: italic;
+}
+
+/* Primary button */
+.btn-realm-primary.mud-button-filled {
+    background: linear-gradient( 135deg, var(--gold-dark), var(--fire-mid) ) !important;
+    color: #1a1a0a !important;
+    font-family: var(--font-title) !important;
+    letter-spacing: 0.08em;
+    border: 1px solid var(--gold-bright) !important;
+    box-shadow: 0 2px 8px rgba(240,192,64,0.3) !important;
+    text-transform: none !important;
+}
+
+    .btn-realm-primary.mud-button-filled:hover {
+        background: linear-gradient( 135deg, var(--gold-mid), var(--fire-bright) ) !important;
+        box-shadow: 0 4px 16px rgba(240,192,64,0.5) !important;
+        transform: translateY(-1px);
+    }
+
+/* Ghost button */
+.btn-realm-ghost.mud-button-outlined {
+    border-color: var(--stone-lighter) !important;
+    color: var(--parchment-mid) !important;
+    font-family: var(--font-title) !important;
+    text-transform: none !important;
+}
+
+    .btn-realm-ghost.mud-button-outlined:hover {
+        border-color: var(--gold-dark) !important;
+        color: var(--parchment-light) !important;
+        background: rgba(240,192,64,0.06) !important;
+    }
+
+/* Select dropdown */
+.mud-select-input {
+    color: var(--parchment-light) !important;
+    font-family: var(--font-body) !important;
+}
+
+.mud-popover-paper {
+    background: var(--stone-mid) !important;
+    border: 1px solid var(--stone-lighter) !important;
+}
+
+.mud-list-item:hover {
+    background: rgba(240,192,64,0.1) !important;
+}
+
+.mud-list-item-text {
+    color: var(--parchment-light) !important;
+    font-family: var(--font-body) !important;
+}
+
+/* Step navigation */
+.step-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 1.5rem;
+    gap: 1rem;
+}
+
+.step-heading {
+    color: var(--gold-bright) !important;
+    font-family: var(--font-title) !important;
+    margin-bottom: 0.25rem;
+}
+
+.step-subtext {
+    color: var(--parchment-mid) !important;
+    font-style: italic;
+    margin-bottom: 1rem !important;
+}

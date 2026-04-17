@@ -1,0 +1,612 @@
+﻿@page "/world"
+@using RealmsEdge.Shared.Enums
+@using RealmsEdge.Shared.Models.Characters
+@using RealmsEdge.Shared.Models.World
+@using RealmsEdge.Shared.Models.Session
+@using RealmsEdge.Shared.Services
+@using Direction = RealmsEdge.Shared.Enums.Direction
+@inject GameStateManager GameManager
+@inject NavigationService GameNavService
+@inject WorldService WorldService
+@inject NavigationManager NavManager
+@implements IDisposable
+
+@if (!GameManager.HasSession ||
+     GameManager.Session.ActivePlayer == null)
+{
+    <div class="world-error">
+        <p>No active character.</p>
+        <button class="btn-parchment"
+                @onclick='() => NavManager.NavigateTo("/")'>
+            Return to Menu
+        </button>
+    </div>
+}
+else
+{
+    <div class="world-shell">
+
+        <!-- ── Location Banner ── -->
+        <div class="world-banner">
+            <div class="world-banner-left">
+                <span class="world-banner-type">
+                    @(_location?.TypeDisplay ?? "")
+                </span>
+                <span class="world-banner-name">
+                    @(_location?.Name ?? "Unknown")
+                </span>
+            </div>
+            <div class="world-banner-right">
+                @if (_location?.IsSafeZone == true)
+                {
+                    <span class="world-safe-tag">
+                        🕊️ Safe
+                    </span>
+                }
+                @if (_location != null)
+                {
+                    <span class="world-danger-tag">
+                        @_location.DangerDisplay
+                    </span>
+                }
+            </div>
+        </div>
+
+        <!-- ── Main Body ── -->
+        <div class="world-body">
+
+            <!-- Left — Room + Log -->
+            <div class="world-left">
+
+                <!-- Room Panel -->
+                <div class="world-room paper-dark">
+
+                    @if (_currentRoom == null)
+                    {
+                        <div class="world-room-empty">
+                            <span>🗺️</span>
+                            <span>@(_location?.Description ?? "Exploring...")</span>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="world-room-header">
+                            <span class="room-type-icon">
+                                @_currentRoom.TypeDisplay.Split(' ')[0]
+                            </span>
+                            <div class="room-titles">
+                                <div class="room-name">
+                                    @_currentRoom.Name
+                                </div>
+                                <div class="room-sub">
+                                    @_currentRoom.TypeDisplay
+                                    · @_currentRoom.StateDisplay
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="divider-gold"></div>
+
+                        <div class="room-description">
+                            @(_currentRoom.IsExplored &&
+                                                _currentRoom.ExploredDescription != null
+                                                ? _currentRoom.ExploredDescription
+                                                : _currentRoom.Description)
+                        </div>
+
+                        @if (_currentRoom.IsDark)
+                        {
+                            <div class="room-warning">
+                                🕯️ This room is very dark.
+                            </div>
+                        }
+
+                        <!-- Hostile NPCs -->
+                        @if (_hostiles.Any())
+                        {
+                            <div class="room-section room-section-danger">
+                                <div class="room-section-title">
+                                    ⚔️ Enemies
+                                </div>
+                                @foreach (var enemy in _hostiles)
+                                {
+                                    <div class="room-npc enemy-row">
+                                        <div class="npc-info">
+                                            <span class="npc-name">
+                                                @enemy.Name
+                                            </span>
+                                            <span class="npc-hp"
+                                                  style="color:@HpColour(enemy)">
+                                                @enemy.Stats.CurrentHitPoints
+                                                /@enemy.Stats.MaxHitPoints HP
+                                            </span>
+                                        </div>
+                                        <button class="btn-danger-sm"
+                                                @onclick="() => Attack(enemy)"
+                                                disabled="@_busy">
+                                            ⚔️ Fight
+                                        </button>
+                                    </div>
+                                }
+                            </div>
+                        }
+
+                        <!-- Friendly NPCs -->
+                        @if (_friendlies.Any())
+                        {
+                            <div class="room-section">
+                                <div class="room-section-title">
+                                    👤 People
+                                </div>
+                                @foreach (var npc in _friendlies)
+                                {
+                                    <div class="room-npc">
+                                        <div class="npc-info">
+                                            <span class="npc-name">
+                                                @npc.Name
+                                            </span>
+                                            <span class="npc-role">
+                                                @npc.NpcType
+                                            </span>
+                                        </div>
+                                        <button class="btn-parchment-sm"
+                                                @onclick="() => Talk(npc)"
+                                                disabled="@_busy">
+                                            💬 Talk
+                                        </button>
+                                    </div>
+                                }
+                            </div>
+                        }
+
+                        <!-- Ground Loot -->
+                        @if (_currentRoom.HasLoot)
+                        {
+                            <div class="room-section">
+                                <div class="room-section-title">
+                                    💎 Items
+                                </div>
+                                @foreach (var item in
+                                                    _currentRoom.GroundLoot)
+                                {
+                                    <div class="room-loot">
+                                        <div class="loot-info">
+                                            <span class="loot-name"
+                                                  style="color:@item.RarityColour">
+                                                @item.Name
+                                            </span>
+                                            <span class="loot-rarity">
+                                                @item.Rarity
+                                            </span>
+                                        </div>
+                                        <button class="btn-parchment-sm"
+                                                @onclick="() => PickUp(item.Id)"
+                                                disabled="@_busy">
+                                            🎒 Take
+                                        </button>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    }
+                </div>
+
+                <!-- Game Log -->
+                <div class="world-log paper-aged">
+                    <div class="log-title">📋 Log</div>
+                    <div class="log-entries">
+                        @foreach (var entry in _log)
+                        {
+                            <div class="log-entry log-@entry.LogType
+                                                .ToString().ToLower()">
+                                @entry.TypeIcon @entry.Message
+                            </div>
+                        }
+                        @if (!_log.Any())
+                        {
+                            <div class="log-empty">
+                                Your adventure begins...
+                            </div>
+                        }
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Right — Controls -->
+            <div class="world-right">
+
+                <!-- Feedback Message -->
+                @if (!string.IsNullOrEmpty(_message))
+                {
+                    <div class="world-message
+                                 @(_isError ? "msg-error" : "msg-info")">
+                        @_message
+                    </div>
+                }
+
+                <!-- Compass -->
+                <div class="world-panel paper-dark">
+                    <div class="panel-title">🧭 Move</div>
+                    <div class="compass">
+                        <div class="compass-row">
+                            <button class="cbtn cbtn-diag"
+                                    @onclick="() => Move(Direction.NorthWest)"
+                                    disabled="@(!CanGo(Direction.NorthWest))">
+                                ↖
+                            </button>
+                            <button class="cbtn cbtn-card"
+                                    @onclick="() => Move(Direction.North)"
+                                    disabled="@(!CanGo(Direction.North))">
+                                N
+                            </button>
+                            <button class="cbtn cbtn-diag"
+                                    @onclick="() => Move(Direction.NorthEast)"
+                                    disabled="@(!CanGo(Direction.NorthEast))">
+                                ↗
+                            </button>
+                        </div>
+                        <div class="compass-row">
+                            <button class="cbtn cbtn-card"
+                                    @onclick="() => Move(Direction.West)"
+                                    disabled="@(!CanGo(Direction.West))">
+                                W
+                            </button>
+                            <div class="compass-centre">⚔️</div>
+                            <button class="cbtn cbtn-card"
+                                    @onclick="() => Move(Direction.East)"
+                                    disabled="@(!CanGo(Direction.East))">
+                                E
+                            </button>
+                        </div>
+                        <div class="compass-row">
+                            <button class="cbtn cbtn-diag"
+                                    @onclick="() => Move(Direction.SouthWest)"
+                                    disabled="@(!CanGo(Direction.SouthWest))">
+                                ↙
+                            </button>
+                            <button class="cbtn cbtn-card"
+                                    @onclick="() => Move(Direction.South)"
+                                    disabled="@(!CanGo(Direction.South))">
+                                S
+                            </button>
+                            <button class="cbtn cbtn-diag"
+                                    @onclick="() => Move(Direction.SouthEast)"
+                                    disabled="@(!CanGo(Direction.SouthEast))">
+                                ↘
+                            </button>
+                        </div>
+                        <!-- Special directions -->
+                        @if (CanGo(Direction.Up) ||
+                                            CanGo(Direction.Down) ||
+                                            CanGo(Direction.Enter) ||
+                                            CanGo(Direction.Exit))
+                        {
+                            <div class="compass-special">
+                                @if (CanGo(Direction.Up))
+                                {
+                                    <button class="cbtn cbtn-special"
+                                            @onclick="() => Move(Direction.Up)">
+                                        ⬆ Up
+                                    </button>
+                                }
+                                @if (CanGo(Direction.Down))
+                                {
+                                    <button class="cbtn cbtn-special"
+                                            @onclick="() => Move(Direction.Down)">
+                                        ⬇ Down
+                                    </button>
+                                }
+                                @if (CanGo(Direction.Enter))
+                                {
+                                    <button class="cbtn cbtn-special"
+                                            @onclick="() => Move(Direction.Enter)">
+                                        🚪 Enter
+                                    </button>
+                                }
+                                @if (CanGo(Direction.Exit))
+                                {
+                                    <button class="cbtn cbtn-special"
+                                            @onclick="() => Move(Direction.Exit)">
+                                        🚪 Exit
+                                    </button>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="world-panel paper-dark">
+                    <div class="panel-title">⚡ Actions</div>
+                    <div class="action-grid">
+                        <button class="world-act-btn"
+                                @onclick="Search"
+                                disabled="@_busy">
+                            🔍 Search
+                        </button>
+
+                        @if (_location?.HasInn == true)
+                        {
+                            <button class="world-act-btn"
+                                    @onclick="UseInn"
+                                    disabled="@_busy">
+                                🏨 Rest (5s)
+                            </button>
+                        }
+
+                        @if (_location?.HasTemple == true)
+                        {
+                            <button class="world-act-btn"
+                                    @onclick="UseTemple"
+                                    disabled="@_busy">
+                                ⛪ Temple
+                            </button>
+                        }
+
+                        @if (_location?.HasMerchant == true)
+                        {
+                            <button class="world-act-btn"
+                                    disabled="@_busy">
+                                🛒 Shop
+                            </button>
+                        }
+                    </div>
+                </div>
+
+                <!-- Travel -->
+                @if (_nearby.Any())
+                {
+                    <div class="world-panel paper-dark">
+                        <div class="panel-title">🗺️ Travel</div>
+                        <div class="travel-list">
+                            @foreach (var loc in _nearby)
+                            {
+                                <button class="travel-btn"
+                                        @onclick="() => TravelTo(loc.Id)"
+                                        disabled="@_busy">
+                                    <span class="travel-icon">
+                                        @loc.TypeDisplay.Split(' ')[0]
+                                    </span>
+                                    <span class="travel-info">
+                                        <span class="travel-name">
+                                            @loc.Name
+                                        </span>
+                                        <span class="travel-meta">
+                                            Lv@(loc.RecommendedLevel)+
+                                            · @loc.DangerDisplay
+                                        </span>
+                                    </span>
+                                    <span class="travel-arrow">›</span>
+                                </button>
+                            }
+                        </div>
+                    </div>
+                }
+
+            </div>
+
+        </div>
+
+    </div>
+}
+
+@code {
+    private WorldLocation? _location;
+    private Room? _currentRoom;
+    private List<NpcCharacter> _hostiles = new();
+    private List<NpcCharacter> _friendlies = new();
+    private List<WorldLocation> _nearby = new();
+    private List<GameLogEntry> _log = new();
+    private string _message = string.Empty;
+    private bool _isError;
+    private bool _busy;
+
+    // ── Lifecycle ────────────────────────────────
+
+    protected override async Task OnInitializedAsync()
+    {
+        GameManager.OnStateChanged   += HandleStateChanged;
+        GameManager.OnSessionUpdated += HandleStateChanged;
+        GameManager.OnLogMessage     += _ => Refresh();
+
+        // Enter the starting room if we don't have one yet
+        await EnsureRoom();
+        Refresh();
+    }
+
+    private async Task EnsureRoom()
+    {
+        if (!GameManager.HasSession) return;
+        var session = GameManager.Session;
+        if (session.ActivePlayer == null) return;
+        if (session.CurrentRoom != null) return;
+        if (session.CurrentLocation == null) return;
+
+        // Call NavigationService directly to enter entry room
+        var result = GameNavService.EnterLocation(
+            session.ActivePlayer.Id,
+            session.CurrentLocation.Id);
+
+        if (result.Success && result.Room != null)
+        {
+            session.CurrentRoom = result.Room;
+            foreach (var line in result.EventLog)
+                session.AddLog(line, GameLogType.World);
+        }
+
+        await Task.CompletedTask;
+    }
+
+    // ── Data ─────────────────────────────────────
+
+    private void Refresh()
+    {
+        if (!GameManager.HasSession) return;
+        var s = GameManager.Session;
+
+        _location    = s.CurrentLocation;
+        _currentRoom = s.CurrentRoom;
+
+        _hostiles = _currentRoom?.GetHostileNpcs()
+            ?? new();
+        _friendlies = _currentRoom?.GetFriendlyNpcs()
+            ?? _location?.PermanentNpcs
+               .Where(n => n.NpcType != NpcType.Enemy &&
+                           n.NpcType != NpcType.Elite  &&
+                           n.NpcType != NpcType.Boss)
+               .ToList()
+            ?? new();
+
+        _nearby = s.ActivePlayer != null
+            ? WorldService.GetAvailableLocations(
+                s.ActivePlayer.Id)
+            : new();
+
+        _log = s.GetRecentLog(20);
+
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void HandleStateChanged()
+    {
+        if (GameManager.CurrentState ==
+                GameState.CombatPlayerTurn ||
+            GameManager.CurrentState ==
+                GameState.CombatStart)
+        {
+            InvokeAsync(() =>
+                NavManager.NavigateTo("/combat"));
+            return;
+        }
+        Refresh();
+    }
+
+    // ── Actions ───────────────────────────────────
+
+    private async Task Move(Direction dir)
+    {
+        if (_busy) return;
+        _busy    = true;
+        _message = string.Empty;
+
+        var (ok, msg) = GameManager.MoveInDirection(dir);
+        _message = msg;
+        _isError = !ok;
+
+        Refresh();
+        _busy = false;
+        await Task.CompletedTask;
+    }
+
+    private async Task Search()
+    {
+        if (_busy) return;
+        _busy = true;
+
+        var (ok, msg) = GameManager.Search();
+        _message = msg;
+        _isError = !ok;
+
+        Refresh();
+        _busy = false;
+        await Task.CompletedTask;
+    }
+
+    private async Task Talk(NpcCharacter npc)
+    {
+        if (_location == null) return;
+        var (ok, msg) =
+            GameManager.TalkToNpc(npc.Id, _location.Id);
+        _message = msg;
+        _isError = !ok;
+        StateHasChanged();
+        await Task.CompletedTask;
+    }
+
+    private async Task PickUp(Guid itemId)
+    {
+        if (!GameManager.HasSession) return;
+        var player = GameManager.Session.ActivePlayer;
+        if (player == null) return;
+
+        var (ok, msg) =
+            GameNavService.PickUpItem(player.Id, itemId);
+        _message = msg;
+        _isError = !ok;
+
+        Refresh();
+        await Task.CompletedTask;
+    }
+
+    private async Task Attack(NpcCharacter enemy)
+    {
+        _busy = true;
+        _message = $"⚔️ Entering combat with {enemy.Name}!";
+        StateHasChanged();
+
+        await GameManager.StartCombatWithEnemies(
+            new List<NpcCharacter> { enemy },
+            $"Battle: {enemy.Name}");
+
+        _busy = false;
+    }
+
+    private async Task TravelTo(Guid id)
+    {
+        if (_busy) return;
+        _busy    = true;
+        _message = "🛤️ Travelling...";
+        StateHasChanged();
+
+        var (ok, msg) = await GameManager.TravelTo(id);
+        _message = msg;
+        _isError = !ok;
+
+        Refresh();
+        _busy = false;
+        StateHasChanged();
+    }
+
+    private async Task UseInn()
+    {
+        if (_location == null) return;
+        _busy = true;
+
+        var (ok, msg) =
+            await GameManager.TakeLongRest(_location.Id);
+        _message = msg;
+        _isError = !ok;
+
+        Refresh();
+        _busy = false;
+        StateHasChanged();
+    }
+
+    private async Task UseTemple()
+    {
+        _message = "⛪ Temple services coming soon.";
+        StateHasChanged();
+        await Task.CompletedTask;
+    }
+
+    // ── Helpers ──────────────────────────────────
+
+    private bool CanGo(Direction d) =>
+        _currentRoom?.HasExit(d) == true && !_busy;
+
+    private string HpColour(NpcCharacter n) =>
+        n.Stats.HealthPercent switch
+        {
+            >= 75 => "#44cc44",
+            >= 50 => "#cccc44",
+            >= 25 => "#cc7744",
+            _ => "#cc4444"
+        };
+
+    public void Dispose()
+    {
+        GameManager.OnStateChanged   -= HandleStateChanged;
+        GameManager.OnSessionUpdated -= HandleStateChanged;
+    }
+}

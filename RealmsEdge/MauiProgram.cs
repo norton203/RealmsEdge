@@ -4,6 +4,8 @@ using RealmsEdge.Maui.Services;
 using RealmsEdge.Shared.Interfaces;
 using RealmsEdge.Shared.Models.World;
 using RealmsEdge.Shared.Services;
+using MudBlazor.Services;
+
 namespace RealmsEdge
 {
     public static class MauiProgram
@@ -19,6 +21,7 @@ namespace RealmsEdge
                 });
 
             builder.Services.AddMauiBlazorWebView();
+            builder.Services.AddMudServices();
 
 #if DEBUG
     		builder.Services.AddBlazorWebViewDeveloperTools();

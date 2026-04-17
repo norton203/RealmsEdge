@@ -1,0 +1,550 @@
+﻿/* ── Shell ── */
+.world-shell {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+    gap: 0;
+}
+
+/* ── Location Banner ── */
+.world-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.4rem 1rem;
+    background: linear-gradient( 135deg, rgba(26,26,46,0.98), rgba(15,15,28,0.95) );
+    border-bottom: 1px solid var(--stone-lighter);
+    flex-shrink: 0;
+    gap: 0.5rem;
+}
+
+.world-banner-left {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+}
+
+.world-banner-type {
+    font-size: 0.75rem;
+    color: var(--parchment-dark);
+    font-style: italic;
+    flex-shrink: 0;
+}
+
+.world-banner-name {
+    font-family: var(--font-title);
+    font-size: 0.95rem;
+    color: var(--gold-bright);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.world-banner-right {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-shrink: 0;
+}
+
+.world-safe-tag {
+    font-size: 0.7rem;
+    color: #44cc44;
+    background: rgba(68,204,68,0.1);
+    border: 1px solid rgba(68,204,68,0.3);
+    border-radius: 4px;
+    padding: 0.1rem 0.4rem;
+}
+
+.world-danger-tag {
+    font-size: 0.7rem;
+    color: var(--parchment-mid);
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--stone-lighter);
+    border-radius: 4px;
+    padding: 0.1rem 0.4rem;
+}
+
+/* ── Body ── */
+.world-body {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    gap: 0;
+}
+
+/* ── Left Column ── */
+.world-left {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    gap: 0;
+    border-right: 1px solid var(--stone-lighter);
+}
+
+/* ── Room Panel ── */
+.world-room {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.world-room-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 2rem;
+    text-align: center;
+    color: var(--parchment-mid);
+    font-style: italic;
+    font-size: 0.9rem;
+    flex: 1;
+}
+
+    .world-room-empty span:first-child {
+        font-size: 2rem;
+    }
+
+.world-room-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+}
+
+.room-type-icon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+    margin-top: 0.1rem;
+}
+
+.room-titles {
+    flex: 1;
+    min-width: 0;
+}
+
+.room-name {
+    font-family: var(--font-title);
+    font-size: 1.05rem;
+    color: var(--gold-bright);
+}
+
+.room-sub {
+    font-size: 0.7rem;
+    color: var(--parchment-dark);
+    font-style: italic;
+}
+
+.room-description {
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    color: var(--parchment-light);
+    line-height: 1.7;
+    font-style: italic;
+}
+
+.room-warning {
+    font-size: 0.8rem;
+    color: var(--gold-bright);
+    background: rgba(240,192,64,0.08);
+    border: 1px solid rgba(240,192,64,0.2);
+    border-radius: 4px;
+    padding: 0.4rem 0.6rem;
+}
+
+/* ── Room Sections ── */
+.room-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.room-section-danger {
+    background: rgba(139,21,21,0.1);
+    border: 1px solid rgba(139,21,21,0.3);
+    border-radius: 6px;
+    padding: 0.5rem;
+}
+
+.room-section-title {
+    font-family: var(--font-title);
+    font-size: 0.75rem;
+    color: var(--parchment-dark);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.2rem;
+}
+
+.room-npc,
+.room-loot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.35rem 0.5rem;
+    background: rgba(0,0,0,0.2);
+    border-radius: 4px;
+}
+
+.enemy-row {
+    background: rgba(139,21,21,0.15);
+}
+
+.npc-info,
+.loot-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1;
+}
+
+.npc-name,
+.loot-name {
+    font-family: var(--font-title);
+    font-size: 0.85rem;
+    color: var(--parchment-light);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.npc-role,
+.npc-hp,
+.loot-rarity {
+    font-size: 0.7rem;
+    color: var(--parchment-dark);
+    font-style: italic;
+}
+
+/* ── Buttons ── */
+.btn-danger-sm,
+.btn-parchment-sm {
+    flex-shrink: 0;
+    padding: 0.25rem 0.6rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    border: 1px solid;
+    font-family: var(--font-ui);
+    transition: all var(--transition-fast);
+    white-space: nowrap;
+}
+
+.btn-danger-sm {
+    background: rgba(139,21,21,0.4);
+    border-color: var(--blood-mid);
+    color: #ff8888;
+}
+
+    .btn-danger-sm:hover:not(:disabled) {
+        background: rgba(139,21,21,0.7);
+    }
+
+.btn-parchment-sm {
+    background: rgba(139,105,20,0.2);
+    border-color: var(--gold-dark);
+    color: var(--gold-bright);
+}
+
+    .btn-parchment-sm:hover:not(:disabled) {
+        background: rgba(139,105,20,0.4);
+    }
+
+    .btn-danger-sm:disabled,
+    .btn-parchment-sm:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+
+/* ── Log ── */
+.world-log {
+    flex-shrink: 0;
+    max-height: 180px;
+    overflow-y: auto;
+    padding: 0.6rem 0.8rem;
+    border-top: 1px solid var(--stone-lighter);
+}
+
+.log-title {
+    font-family: var(--font-title);
+    font-size: 0.7rem;
+    color: var(--parchment-dark);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.4rem;
+}
+
+.log-entries {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.log-entry {
+    font-size: 0.75rem;
+    color: var(--parchment-mid);
+    line-height: 1.4;
+    font-family: var(--font-body);
+    padding: 0.1rem 0;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+
+    .log-entry.log-combat {
+        color: #ff8888;
+    }
+
+    .log-entry.log-quest {
+        color: #a88aff;
+    }
+
+    .log-entry.log-loot {
+        color: var(--gold-bright);
+    }
+
+    .log-entry.log-system {
+        color: var(--parchment-dark);
+    }
+
+.log-empty {
+    font-size: 0.75rem;
+    color: var(--parchment-dark);
+    font-style: italic;
+}
+
+/* ── Right Column ── */
+.world-right {
+    width: 220px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    gap: 0;
+    background: rgba(10,10,20,0.5);
+}
+
+/* ── Feedback Message ── */
+.world-message {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.75rem;
+    font-family: var(--font-body);
+    font-style: italic;
+    border-bottom: 1px solid var(--stone-lighter);
+}
+
+.msg-info {
+    color: var(--parchment-mid);
+}
+
+.msg-error {
+    color: #ff8888;
+}
+
+/* ── Generic Panel ── */
+.world-panel {
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--stone-lighter);
+}
+
+.panel-title {
+    font-family: var(--font-title);
+    font-size: 0.7rem;
+    color: var(--parchment-dark);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.6rem;
+}
+
+/* ── Compass ── */
+.compass {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+}
+
+.compass-row {
+    display: flex;
+    gap: 3px;
+    align-items: center;
+}
+
+.cbtn {
+    width: 40px;
+    height: 40px;
+    border-radius: 4px;
+    background: rgba(26,26,46,0.8);
+    border: 1px solid var(--stone-lighter);
+    color: var(--parchment-light);
+    font-size: 0.9rem;
+    font-family: var(--font-ui);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+    .cbtn:not(:disabled):hover {
+        background: rgba(240,192,64,0.15);
+        border-color: var(--gold-dark);
+        color: var(--gold-bright);
+    }
+
+    .cbtn:disabled {
+        opacity: 0.2;
+        cursor: not-allowed;
+    }
+
+.cbtn-card {
+    font-weight: bold;
+    font-size: 0.8rem;
+}
+
+.cbtn-diag {
+    width: 36px;
+    height: 36px;
+    font-size: 0.75rem;
+    opacity: 0.7;
+}
+
+.compass-centre {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    opacity: 0.5;
+}
+
+.compass-special {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    justify-content: center;
+    margin-top: 3px;
+    width: 100%;
+}
+
+.cbtn-special {
+    width: auto;
+    padding: 0 0.5rem;
+    font-size: 0.7rem;
+    height: 30px;
+    flex: 1;
+    min-width: 60px;
+}
+
+/* ── Quick Actions ── */
+.action-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.world-act-btn {
+    width: 100%;
+    padding: 0.45rem 0.75rem;
+    background: rgba(26,26,46,0.8);
+    border: 1px solid var(--stone-lighter);
+    border-radius: 4px;
+    color: var(--parchment-light);
+    font-size: 0.8rem;
+    font-family: var(--font-ui);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    text-align: left;
+}
+
+    .world-act-btn:hover:not(:disabled) {
+        border-color: var(--gold-dark);
+        color: var(--gold-bright);
+        background: rgba(240,192,64,0.08);
+    }
+
+    .world-act-btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+
+/* ── Travel ── */
+.travel-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.travel-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.5rem 0.6rem;
+    background: rgba(26,26,46,0.8);
+    border: 1px solid var(--stone-lighter);
+    border-radius: 4px;
+    color: var(--parchment-light);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    text-align: left;
+}
+
+    .travel-btn:hover:not(:disabled) {
+        border-color: var(--gold-dark);
+        background: rgba(240,192,64,0.08);
+    }
+
+    .travel-btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+
+.travel-icon {
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.travel-info {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+}
+
+.travel-name {
+    font-family: var(--font-title);
+    font-size: 0.8rem;
+    color: var(--parchment-light);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.travel-meta {
+    font-size: 0.65rem;
+    color: var(--parchment-dark);
+    font-style: italic;
+}
+
+.travel-arrow {
+    color: var(--gold-dark);
+    font-size: 1.1rem;
+}
+
+/* ── Error State ── */
+.world-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: 1rem;
+    color: var(--parchment-mid);
+}
