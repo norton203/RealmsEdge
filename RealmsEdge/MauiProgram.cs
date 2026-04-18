@@ -1,10 +1,9 @@
-﻿
 using Microsoft.Extensions.Logging;
+using MudBlazor.Services;
 using RealmsEdge.Maui.Services;
 using RealmsEdge.Shared.Interfaces;
 using RealmsEdge.Shared.Models.World;
 using RealmsEdge.Shared.Services;
-using MudBlazor.Services;
 
 namespace RealmsEdge
 {
@@ -13,26 +12,36 @@ namespace RealmsEdge
         public static MauiApp CreateMauiApp()
         {
             var builder = MauiApp.CreateBuilder();
+
             builder
                 .UseMauiApp<App>()
                 .ConfigureFonts(fonts =>
                 {
-                    fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
+                    fonts.AddFont(
+                        "OpenSans-Regular.ttf",
+                        "OpenSansRegular");
                 });
 
             builder.Services.AddMauiBlazorWebView();
             builder.Services.AddMudServices();
 
 #if DEBUG
-    		builder.Services.AddBlazorWebViewDeveloperTools();
-    		builder.Logging.AddDebug();
+            builder.Services.AddBlazorWebViewDeveloperTools();
+            builder.Logging.AddDebug();
 #endif
-            // Singletons first
+
+            // ── Persistence ──────────────────────────
+            // Singleton — one database connection for
+            // the lifetime of the app.
+            builder.Services.AddSingleton<IDatabaseService,
+                                          DatabaseService>();
+
+            // ── Singletons ───────────────────────────
             builder.Services.AddSingleton<DiceService>();
             builder.Services.AddSingleton(
                 WorldMap.CreateStarterWorld());
 
-            // Scoped services in dependency order
+            // ── Scoped services ──────────────────────
             builder.Services.AddScoped<ISoundService, SoundService>();
             builder.Services.AddScoped<CharacterValidationService>();
             builder.Services.AddScoped<CharacterService>();
@@ -43,7 +52,12 @@ namespace RealmsEdge
             builder.Services.AddScoped<CombatService>();
             builder.Services.AddScoped<QuestService>();
             builder.Services.AddScoped<GameStateManager>();
-            return builder.Build();
+
+            var app = builder.Build();
+
+            
+
+            return app;
         }
     }
 }

@@ -1,15 +1,23 @@
-﻿namespace RealmsEdge
+﻿using RealmsEdge.Shared.Interfaces;
+
+namespace RealmsEdge
 {
     public partial class App : Application
     {
-        public App()
+        private readonly IDatabaseService _database;
+
+        public App(IDatabaseService database)
         {
+            _database = database;
             InitializeComponent();
         }
 
-        protected override Window CreateWindow(IActivationState? activationState)
+        protected override Window CreateWindow(
+            IActivationState? activationState)
         {
-            return new Window(new MainPage()) { Title = "RealmsEdge" };
+            // Fire async init without blocking
+            _ = _database.InitialiseAsync();
+            return new Window(new MainPage());
         }
     }
 }

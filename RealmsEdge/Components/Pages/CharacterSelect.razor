@@ -1,0 +1,329 @@
+@page "/select"
+@using RealmsEdge.Shared.Enums
+@using RealmsEdge.Shared.Models.Characters
+@using RealmsEdge.Shared.Services
+@inject GameStateManager GameManager
+@inject CharacterService CharacterService
+@inject NavigationManager NavManager
+
+<div class="select-shell">
+
+    <!-- ── Header ── -->
+    <div class="select-header">
+        <button class="btn-ghost select-back"
+                @onclick="GoBack">
+            ← Back
+        </button>
+        <h1 class="select-title">⚔️ Choose Your Legend</h1>
+        <button class="btn-realm select-new"
+                @onclick="NewCharacter">
+            + New
+        </button>
+    </div>
+
+    <div class="select-subtitle">
+        @if (_characters.Any())
+        {
+            <span>@_characters.Count character@(_characters.Count == 1 ? "" : "s") found</span>
+        }
+    </div>
+
+    <!-- ── Character List ── -->
+    <div class="select-content">
+
+        @if (!_characters.Any())
+        {
+            <!-- Empty State -->
+            <div class="select-empty">
+                <div class="select-empty-emblem">📜</div>
+                <h2 class="select-empty-title">No Legends Yet</h2>
+                <p class="select-empty-text">
+                    Your story has not yet begun.<br />
+                    Create your first character and enter the world.
+                </p>
+                <button class="btn-realm select-empty-btn"
+                        @onclick="NewCharacter">
+                    ⚔️ Create Character
+                </button>
+            </div>
+        }
+        else
+        {
+            <div class="select-list">
+                @foreach (var character in _characters)
+                {
+                    <div class="select-card @(_selected?.Id == character.Id ? "select-card-active" : "")"
+                         @onclick="() => SelectCard(character)">
+
+                        <!-- Left — Class Icon + Level -->
+                        <div class="select-card-left">
+                            <div class="select-class-icon">
+                                @GetClassIcon(character.Class)
+                            </div>
+                            <div class="select-level-badge">
+                                Lv@character.Level
+                            </div>
+                        </div>
+
+                        <!-- Centre — Identity -->
+                        <div class="select-card-centre">
+                            <div class="select-card-name">
+                                @character.Name
+                            </div>
+                            <div class="select-card-sub">
+                                @character.Race · @character.Class · @GetAlignmentShort(character.Alignment)
+                            </div>
+                            <div class="select-card-stats">
+                                <span class="select-stat">
+                                    ❤️ @character.Stats.CurrentHitPoints/@character.Stats.MaxHitPoints
+                                </span>
+                                <span class="select-stat">
+                                    ⚔️ @character.TotalKills kills
+                                </span>
+                                <span class="select-stat">
+                                    ✨ @character.ExperiencePoints.ToString("N0") XP
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Right — Health Bar + Arrow -->
+                        <div class="select-card-right">
+                            <div class="select-health-track">
+                                <div class="select-health-fill"
+                                     style="width:@GetHealthPercent(character)%;
+                                            background:@GetHealthColour(character);">
+                                </div>
+                            </div>
+                            <div class="select-card-arrow">›</div>
+                        </div>
+
+                    </div>
+                }
+            </div>
+
+            <!-- ── Confirm Panel — appears when a card is selected ── -->
+            @if (_selected != null)
+            {
+                <div class="select-confirm paper">
+                    <div class="select-confirm-name">
+                        @_selected.Name
+                    </div>
+                    <div class="select-confirm-detail">
+                        @_selected.Race @_selected.Class ·
+                        Level @_selected.Level ·
+                        @GetAlignmentShort(_selected.Alignment)
+                    </div>
+
+                    @if (_errorMessage != null)
+                    {
+                        <div class="select-error">
+                            ⚠️ @_errorMessage
+                        </div>
+                    }
+
+                    <div class="select-confirm-actions">
+                        <button class="btn-realm select-play-btn"
+                                @onclick="PlaySelected"
+                                disabled="@_busy">
+                            @(_busy ? "⏳ Loading..." : "▶ Play")
+                        </button>
+                        <button class="btn-ghost select-delete-btn"
+                                @onclick="() => ConfirmDelete(_selected)"
+                                disabled="@_busy">
+                            🗑 Delete
+                        </button>
+                    </div>
+                </div>
+            }
+        }
+
+    </div>
+
+    <!-- ── Delete Confirmation Overlay ── -->
+    @if (_pendingDelete != null)
+    {
+        <div class="select-overlay"
+             @onclick="CancelDelete">
+            <div class="select-overlay-panel paper"
+                 @onclick:stopPropagation="true">
+                <h2 class="text-center">☠️ Delete Character?</h2>
+                <p class="text-center">
+                    <strong>@_pendingDelete.Name</strong> will be gone forever.<br />
+                    <span class="text-small text-dim">There is no coming back from death.</span>
+                </p>
+                <div class="select-overlay-actions">
+                    <button class="btn-danger"
+                            @onclick="ExecuteDelete">
+                        ☠️ Delete Forever
+                    </button>
+                    <button class="btn-ghost"
+                            @onclick="CancelDelete">
+                        ← Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
+
+</div>
+
+@code {
+    private List<PlayerCharacter> _characters = new();
+    private PlayerCharacter?      _selected;
+    private PlayerCharacter?      _pendingDelete;
+    private string?               _errorMessage;
+    private bool                  _busy;
+
+    // =====================
+    // Lifecycle
+    // =====================
+
+    protected override void OnInitialized()
+    {
+        // Ensure a session exists before anything is rendered
+        if (!GameManager.HasSession)
+            GameManager.StartNewSession();
+
+        LoadCharacters();
+    }
+
+    private void LoadCharacters()
+    {
+        _characters = CharacterService
+            .GetAllCharacters()
+            .OrderByDescending(c => c.LastPlayedAt)
+            .ToList();
+    }
+
+    // =====================
+    // Selection
+    // =====================
+
+    private void SelectCard(PlayerCharacter character)
+    {
+        _selected     = character;
+        _errorMessage = null;
+    }
+
+    private void PlaySelected()
+    {
+        if (_selected == null) return;
+
+        _busy         = true;
+        _errorMessage = null;
+
+        var (success, message) =
+            GameManager.SelectCharacter(_selected.Id);
+
+        if (!success)
+        {
+            _errorMessage = message;
+            _busy         = false;
+            return;
+        }
+
+        NavManager.NavigateTo("/world");
+    }
+
+    // =====================
+    // Delete
+    // =====================
+
+    private void ConfirmDelete(PlayerCharacter character)
+    {
+        _pendingDelete = character;
+    }
+
+    private void CancelDelete()
+    {
+        _pendingDelete = null;
+    }
+
+    private void ExecuteDelete()
+    {
+        if (_pendingDelete == null) return;
+
+        CharacterService.DeleteCharacter(_pendingDelete.Id);
+
+        if (_selected?.Id == _pendingDelete.Id)
+            _selected = null;
+
+        _pendingDelete = null;
+        LoadCharacters();
+    }
+
+    // =====================
+    // Navigation
+    // =====================
+
+    private void NewCharacter()
+    {
+        GameManager.TransitionTo(GameState.CharacterCreate);
+        NavManager.NavigateTo("/create");
+    }
+
+    private void GoBack()
+    {
+        GameManager.TransitionTo(GameState.MainMenu);
+        NavManager.NavigateTo("/");
+    }
+
+    // =====================
+    // Display Helpers
+    // =====================
+
+    private static string GetClassIcon(CharacterClass cls) => cls switch
+    {
+        CharacterClass.Fighter     or
+        CharacterClass.Barbarian   or
+        CharacterClass.Witchhunter or
+        CharacterClass.BountyHunter => "⚔️",
+        CharacterClass.Paladin     => "🛡️",
+        CharacterClass.Ranger      => "🏹",
+        CharacterClass.Rogue       or
+        CharacterClass.Assassin    => "🗡️",
+        CharacterClass.Mage        or
+        CharacterClass.Illusionist or
+        CharacterClass.Sorcerer    or
+        CharacterClass.Warlock     => "🔮",
+        CharacterClass.Cleric      or
+        CharacterClass.Druid       or
+        CharacterClass.Shaman      => "✨",
+        CharacterClass.Bard        => "🎵",
+        CharacterClass.Monk        => "👊",
+        CharacterClass.Necromancer => "💀",
+        CharacterClass.Chaos       => "🌀",
+        _                          => "⚔️"
+    };
+
+    private static string GetAlignmentShort(Alignment a) => a switch
+    {
+        Alignment.LawfulGood     => "LG",
+        Alignment.LawfulNeutral  => "LN",
+        Alignment.LawfulEvil     => "LE",
+        Alignment.NeutralGood    => "NG",
+        Alignment.TrueNeutral    => "TN",
+        Alignment.NeutralEvil    => "NE",
+        Alignment.ChaoticGood    => "CG",
+        Alignment.ChaoticNeutral => "CN",
+        Alignment.ChaoticEvil    => "CE",
+        _                        => "??"
+    };
+
+    private static double GetHealthPercent(PlayerCharacter c)
+    {
+        if (c.Stats.MaxHitPoints <= 0) return 0;
+        return Math.Max(0, Math.Min(100,
+            (double)c.Stats.CurrentHitPoints
+            / c.Stats.MaxHitPoints * 100));
+    }
+
+    private static string GetHealthColour(PlayerCharacter c)
+        => GetHealthPercent(c) switch
+        {
+            >= 75 => "#2d8a2d",
+            >= 50 => "#8a7a2d",
+            >= 25 => "#8a4a2d",
+            _     => "#8a2d2d"
+        };
+}

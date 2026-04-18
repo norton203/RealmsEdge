@@ -422,5 +422,34 @@
         opacity: 0.5;
     }
 }
+.gender-btn-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.25rem;
+}
+
+.create-card-sm {
+    padding: 0.4rem 1rem;
+    border: 1px solid var(--stone-lighter);
+    border-radius: var(--radius-sm);
+    background: var(--stone-mid);
+    color: var(--parchment-mid);
+    font-family: var(--font-ui);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+    .create-card-sm:hover {
+        border-color: var(--gold-dark);
+        color: var(--parchment-light);
+    }
+
+    .create-card-sm.selected {
+        border-color: var(--gold-bright);
+        background: var(--stone-light);
+        color: var(--gold-bright);
+    }
 
 

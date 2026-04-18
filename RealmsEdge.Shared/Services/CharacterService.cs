@@ -1,4 +1,5 @@
-﻿using RealmsEdge.Shared.Enums;
+using RealmsEdge.Shared.Enums;
+using RealmsEdge.Shared.Interfaces;
 using RealmsEdge.Shared.Models;
 using RealmsEdge.Shared.Models.Characters;
 using RealmsEdge.Shared.Models.Items;
@@ -11,19 +12,43 @@ namespace RealmsEdge.Shared.Services
         // Dependencies
         // =====================
 
-        private readonly DiceService _diceService;
+        private readonly DiceService              _diceService;
         private readonly CharacterValidationService _validationService;
+        private readonly IDatabaseService         _database;
 
-        // In memory store for now
-        // Will be replaced with database service later
-        private readonly Dictionary<Guid, PlayerCharacter> _characters = new();
+        // ── Write-through cache ──────────────────────
+        // Keeps the rest of the app fast (sync reads)
+        // while all writes go straight to SQLite.
+
+        private Dictionary<Guid, PlayerCharacter> _cache = new();
+        private bool _cacheLoaded = false;
 
         public CharacterService(
             DiceService diceService,
-            CharacterValidationService validationService)
+            CharacterValidationService validationService,
+            IDatabaseService database)
         {
             _diceService       = diceService;
             _validationService = validationService;
+            _database          = database;
+        }
+
+        // =====================
+        // Cache
+        // =====================
+
+        /// <summary>
+        /// Loads all characters from SQLite into the cache.
+        /// Called automatically on first access — no manual
+        /// init required from the call site.
+        /// </summary>
+        private async Task EnsureCacheAsync()
+        {
+            if (_cacheLoaded) return;
+
+            var characters = await _database.GetAllCharactersAsync();
+            _cache = characters.ToDictionary(c => c.Id);
+            _cacheLoaded = true;
         }
 
         // =====================
@@ -39,27 +64,26 @@ namespace RealmsEdge.Shared.Services
             Gender gender,
             List<DiceRoll> statRolls)
         {
-            // Validate before creating
             var statValues = statRolls.Select(r => r.Total).ToList();
             var validation = _validationService.ValidateNewCharacter(
-                characterName, race, charClass, alignment, gender, statValues);
+                characterName, race, charClass,
+                alignment, gender, statValues);
 
             if (!validation.IsValid)
                 return (validation, null);
 
-            // Create the character using our factory method
             var character = PlayerCharacter.Create(
-                playerName,
-                characterName,
-                race,
-                charClass,
-                alignment,
-                gender,
-                statRolls,
-                _diceService);
+                playerName, characterName,
+                race, charClass,
+                alignment, gender,
+                statRolls, _diceService);
 
-            // Store in memory
-            _characters[character.Id] = character;
+            // Write-through: cache + database
+            _cache[character.Id] = character;
+
+            // Fire-and-forget is safe here — the cache
+            // is the source of truth until the app restarts
+            _ = _database.SaveCharacterAsync(character);
 
             return (validation, character);
         }
@@ -69,21 +93,42 @@ namespace RealmsEdge.Shared.Services
         // =====================
 
         public PlayerCharacter? GetCharacter(Guid characterId)
-            => _characters.TryGetValue(characterId, out var character)
-                ? character : null;
+        {
+            // Ensure cache is warm — blocks only on very first call
+            if (!_cacheLoaded)
+                EnsureCacheAsync().GetAwaiter().GetResult();
+
+            return _cache.TryGetValue(characterId, out var c) ? c : null;
+        }
 
         public List<PlayerCharacter> GetAllCharacters()
-            => _characters.Values.ToList();
+        {
+            if (!_cacheLoaded)
+                EnsureCacheAsync().GetAwaiter().GetResult();
+
+            return _cache.Values.ToList();
+        }
 
         public List<PlayerCharacter> GetCharactersByPlayer(string playerName)
-            => _characters.Values
-                .Where(c => c.PlayerName
-                    .Equals(playerName, StringComparison.OrdinalIgnoreCase))
+        {
+            if (!_cacheLoaded)
+                EnsureCacheAsync().GetAwaiter().GetResult();
+
+            return _cache.Values
+                .Where(c => c.PlayerName.Equals(
+                    playerName,
+                    StringComparison.OrdinalIgnoreCase))
                 .OrderByDescending(c => c.LastPlayedAt)
                 .ToList();
+        }
 
         public bool CharacterExists(Guid characterId)
-            => _characters.ContainsKey(characterId);
+        {
+            if (!_cacheLoaded)
+                EnsureCacheAsync().GetAwaiter().GetResult();
+
+            return _cache.ContainsKey(characterId);
+        }
 
         // =====================
         // Character Updates
@@ -92,31 +137,34 @@ namespace RealmsEdge.Shared.Services
         public bool UpdateCharacter(PlayerCharacter character)
         {
             if (!CharacterExists(character.Id)) return false;
+
             character.LastPlayedAt = DateTime.UtcNow;
-            _characters[character.Id] = character;
+            _cache[character.Id]   = character;
+
+            _ = _database.SaveCharacterAsync(character);
             return true;
         }
 
         public bool DeleteCharacter(Guid characterId)
-            => _characters.Remove(characterId);
+        {
+            if (!_cache.Remove(characterId)) return false;
+
+            _ = _database.DeleteCharacterAsync(characterId);
+            return true;
+        }
 
         // =====================
         // Stat Rolling
         // =====================
 
-        // Roll a full set of stats for character creation
         public List<DiceRoll> RollCharacterStats()
             => _diceService.RollFullStatArray();
 
-        // Roll stats multiple times, player picks best set
-        // Classic D&D character creation option
         public List<List<DiceRoll>> RollMultipleStatSets(int numberOfSets = 3)
             => Enumerable.Range(0, numberOfSets)
                 .Select(_ => _diceService.RollFullStatArray())
                 .ToList();
 
-        // Standard array — no rolling, classic fixed stats
-        // 15, 14, 13, 12, 10, 8 — assign as desired
         public List<int> GetStandardStatArray()
             => new() { 15, 14, 13, 12, 10, 8 };
 
@@ -136,7 +184,6 @@ namespace RealmsEdge.Shared.Services
                     $"{character.ExperienceToNextLevel - character.ExperiencePoints:N0} " +
                     $"more XP to reach level {character.Level + 1}.");
 
-            var oldLevel = character.Level;
             character.LevelUp(_diceService);
             UpdateCharacter(character);
 
@@ -149,7 +196,10 @@ namespace RealmsEdge.Shared.Services
         // Experience
         // =====================
 
-        public void AwardExperience(Guid characterId, long amount, string reason = "")
+        public void AwardExperience(
+            Guid characterId,
+            long amount,
+            string reason = "")
         {
             var character = GetCharacter(characterId);
             if (character == null) return;
@@ -202,7 +252,8 @@ namespace RealmsEdge.Shared.Services
             if (character == null)
                 return (false, "Character not found.");
 
-            var item = character.Inventory.FirstOrDefault(i => i.Id == itemId);
+            var item = character.Inventory
+                .FirstOrDefault(i => i.Id == itemId);
             if (item == null)
                 return (false, "Item not found in inventory.");
 
@@ -223,7 +274,8 @@ namespace RealmsEdge.Shared.Services
             if (character == null)
                 return (false, "Character not found.");
 
-            var item = character.Inventory.FirstOrDefault(i => i.Id == itemId);
+            var item = character.Inventory
+                .FirstOrDefault(i => i.Id == itemId);
             if (item == null)
                 return (false, "Item not found in inventory.");
 
@@ -252,12 +304,15 @@ namespace RealmsEdge.Shared.Services
             int copperAmount)
         {
             var from = GetCharacter(fromCharacterId);
-            var to = GetCharacter(toCharacterId);
+            var to   = GetCharacter(toCharacterId);
 
             if (from == null || to == null)
                 return (false, "One or both characters not found.");
 
-            var totalCopper = (goldAmount * 100) + (silverAmount * 10) + copperAmount;
+            var totalCopper =
+                (goldAmount * 100) +
+                (silverAmount * 10) +
+                copperAmount;
 
             if (!from.CanAfford(totalCopper))
                 return (false,
@@ -286,25 +341,17 @@ namespace RealmsEdge.Shared.Services
             if (!character.Stats.IsAlive)
                 return $"{character.Name} is dead and cannot rest.";
 
-            if (character.HasStatus(CharacterStatus.Bleeding))
-                return $"{character.Name} is bleeding and must be stabilised first.";
+            var healAmount = _diceService
+                .Roll(DiceType.D6, 1, character.Stats.ConstitutionModifier)
+                .Total;
 
-            // Short rest — roll hit die and recover partial resources
-            var hitDieRoll = _diceService.Roll(DiceType.D8, 1,
-                character.Stats.ConstitutionModifier);
-            var hpRecovered = Math.Max(1, hitDieRoll.Total);
-            var manaRecovered = character.Stats.WisdomModifier * 2;
-            var staminaRecovered = character.Stats.ConstitutionModifier * 3;
-
-            character.Stats.RestorePartial(hpRecovered, manaRecovered, staminaRecovered);
-            character.RemoveStatus(CharacterStatus.Poisoned);
-            character.RemoveStatus(CharacterStatus.Stunned);
+            healAmount = Math.Max(1, healAmount);
+            character.Stats.CurrentHitPoints = Math.Min(
+                character.Stats.MaxHitPoints,
+                character.Stats.CurrentHitPoints + healAmount);
 
             UpdateCharacter(character);
-
-            return $"{character.Name} takes a short rest and recovers " +
-                   $"{hpRecovered} HP, {manaRecovered} Mana, " +
-                   $"{staminaRecovered} Stamina.";
+            return $"{character.Name} rests and recovers {healAmount} HP.";
         }
 
         public string LongRest(Guid characterId)
@@ -315,29 +362,13 @@ namespace RealmsEdge.Shared.Services
             if (!character.Stats.IsAlive)
                 return $"{character.Name} is dead and cannot rest.";
 
-            character.Stats.RestoreFull();
+            character.Stats.CurrentHitPoints = character.Stats.MaxHitPoints;
+            character.Stats.CurrentMana      = character.Stats.MaxMana;
+            character.Stats.CurrentStamina   = character.Stats.MaxStamina;
             character.ClearAllStatuses();
-            character.LastPlayedAt = DateTime.UtcNow;
 
             UpdateCharacter(character);
-
             return $"{character.Name} takes a long rest and is fully restored.";
-        }
-
-        // =====================
-        // Character Summary
-        // =====================
-
-        public string GetCharacterSummary(Guid characterId)
-        {
-            var c = GetCharacter(characterId);
-            if (c == null) return "Character not found.";
-
-            return $"{c.FullTitle} | {c.Race} {c.Class} | " +
-                   $"Level {c.Level} | {c.Alignment} | " +
-                   $"HP: {c.Stats.CurrentHitPoints}/{c.Stats.MaxHitPoints} | " +
-                   $"XP: {c.ExperiencePoints:N0}/{c.ExperienceToNextLevel:N0} | " +
-                   $"Gold: {c.Gold}g {c.Silver}s {c.Copper}c";
         }
     }
 }

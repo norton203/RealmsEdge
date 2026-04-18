@@ -142,7 +142,11 @@
         };
 
         if (target != null && !NavManager.Uri.EndsWith(target))
-            NavManager.NavigateTo(target);
+        {
+             NavManager.NavigateTo(target);
+            return; 
+        }
+       
 
         InvokeAsync(StateHasChanged);
     }
@@ -173,7 +177,7 @@
         TextPrimary     = "#D4C9A8",
         TextSecondary   = "#8B7355",
         ActionDefault   = "#F0C040",
-        DividerColor    = "#2e2e50",
+        Divider         = "#2e2e50",
         OverlayDark     = "rgba(0,0,0,0.75)"
     },
     PaletteDark = new PaletteDark
@@ -188,7 +192,7 @@
         TextPrimary     = "#D4C9A8",
         TextSecondary   = "#8B7355",
         ActionDefault   = "#F0C040",
-        DividerColor    = "#2e2e50",
+        Divider         = "#2e2e50",
     },
     Typography = new Typography
     {
@@ -222,10 +226,7 @@
             FontSize      = "0.85rem",
             LetterSpacing = "0.08em"
         }
-    },
-    Shape = new Shape
-    {
-        BorderRadius = 6
     }
+   
 };
 }

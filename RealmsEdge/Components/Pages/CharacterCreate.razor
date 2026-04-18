@@ -32,7 +32,7 @@
     <!-- Step Content -->
     <div class="create-content">
 
-        <!-- Step 1 — Identity -->
+       
         <!-- Step 1 — Identity -->
 @if (_step == 1)
 {
@@ -75,21 +75,20 @@
             AdornmentIcon="@Icons.Material.Filled.AccountCircle"
             Class="mud-realm-input" />
 
-        <MudSelect
-            @bind-Value="_gender"
-            Label="Gender"
-            Variant="Variant.Outlined"
-            Margin="Margin.Normal"
-            FullWidth="true"
-            Class="mud-realm-input">
-            @foreach (var g in Enum.GetValues<Gender>()
-                .Where(g => g != Gender.None))
-            {
-                <MudSelectItem Value="@g">
-                    @g
-                </MudSelectItem>
-            }
-        </MudSelect>
+                <div class="create-field">
+                    <label class="create-label">⚧ Gender</label>
+                    <div class="gender-btn-group">
+                        @foreach (var g in Enum.GetValues<Gender>()
+                                            .Where(g => g != Gender.None))
+                        {
+                            <button class="create-card-sm
+                                   @(_gender == g ? "selected" : "")"
+                                    @onclick="() => _gender = g">
+                                @g
+                            </button>
+                        }
+                    </div>
+                </div>
 
        <div class="step-nav">
     <MudButton
@@ -103,9 +102,9 @@
     <MudButton
         Variant="Variant.Filled"
         Color="Color.Secondary"
-        EndIcon="@Icons.Material.Filled.AutoAwesome"
+        EndIcon="@Icons.Material.Filled.AutoAwesome"f
         OnClick="CreateCharacter"
-        Disabled="@(_busy || !_validationResult.IsValid)"
+                               Disabled="@(_busy || _validationResult?.IsValid == false)"
         Class="btn-realm-primary">
         @(_busy ? "Creating..." : "Begin Adventure")
     </MudButton>
@@ -487,6 +486,13 @@
     private bool _useStandard = false;
     private bool _isCreating = false;
     private string? _nameError = null;
+    private bool _busy => _isCreating;
+
+    private List<string> _nameErrors => _nameError != null
+        ? new List<string> { _nameError }
+        : new List<string>();
+
+    private ValidationResult? _validationResult;
     private List<string> _validationErrors = new();
     private List<string> _validationWarnings = new();
     private List<CharacterClass> _recommendedClasses
