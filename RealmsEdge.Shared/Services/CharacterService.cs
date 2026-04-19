@@ -108,6 +108,12 @@ namespace RealmsEdge.Shared.Services
 
             return _cache.Values.ToList();
         }
+        
+        public async Task<List<PlayerCharacter>> GetAllCharactersAsync()
+        {
+            await EnsureCacheAsync();
+            return _cache.Values.ToList();
+        }
 
         public List<PlayerCharacter> GetCharactersByPlayer(string playerName)
         {

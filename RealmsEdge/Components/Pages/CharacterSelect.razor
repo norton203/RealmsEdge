@@ -153,7 +153,7 @@
                 </p>
                 <div class="select-overlay-actions">
                     <button class="btn-danger"
-                            @onclick="ExecuteDelete">
+                            @onclick="async () => await ExecuteDelete()">
                         ☠️ Delete Forever
                     </button>
                     <button class="btn-ghost"
@@ -178,19 +178,17 @@
     // Lifecycle
     // =====================
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        // Ensure a session exists before anything is rendered
         if (!GameManager.HasSession)
             GameManager.StartNewSession();
 
-        LoadCharacters();
+        await LoadCharactersAsync();
     }
 
-    private void LoadCharacters()
+    private async Task LoadCharactersAsync()
     {
-        _characters = CharacterService
-            .GetAllCharacters()
+        _characters = (await CharacterService.GetAllCharactersAsync())
             .OrderByDescending(c => c.LastPlayedAt)
             .ToList();
     }
@@ -239,7 +237,7 @@
         _pendingDelete = null;
     }
 
-    private void ExecuteDelete()
+    private async Task ExecuteDelete()
     {
         if (_pendingDelete == null) return;
 
@@ -249,7 +247,7 @@
             _selected = null;
 
         _pendingDelete = null;
-        LoadCharacters();
+        await LoadCharactersAsync();
     }
 
     // =====================
