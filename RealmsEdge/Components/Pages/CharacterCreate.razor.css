@@ -201,6 +201,7 @@
     font-size: 0.65rem;
     text-align: center;
     line-height: 1.2;
+    color:whitesmoke !important;
 }
 
 .card-badge {
@@ -244,14 +245,17 @@
     font-family: 'Cinzel', serif;
     font-size: 0.9rem;
     font-weight: bold;
-    color: #2a1f0e;
+    /*color: #2a1f0e;*/
+    color:antiquewhite;
 }
 
 .alignment-full {
     font-size: 0.55rem;
-    color: #5a4a30;
+    /*color: #5a4a30;*/
+    color:whitesmoke !important;
     text-align: center;
     line-height: 1.2;
+
 }
 
 /* ── Stat Rolling ── */
@@ -279,7 +283,8 @@
 .stat-name {
     font-family: 'Cinzel', serif;
     font-size: 0.8rem;
-    color: #3a2010;
+    /*color: #3a2010;*/
+    color:antiquewhite;
     width: 110px;
     flex-shrink: 0;
 }
@@ -300,7 +305,8 @@
 
 .stat-roll-detail {
     font-size: 0.7rem;
-    color: #5a4a30;
+    /*color: #5a4a30;*/
+    color:antiquewhite;
     font-family: var(--font-mono);
 }
 
@@ -316,7 +322,8 @@
     margin-top: 0.5rem;
     font-family: 'Cinzel', serif;
     font-size: 0.85rem;
-    color: #3a2010;
+   /* color: #3a2010;*/
+   color:azure;
     font-weight: bold;
 }
 
@@ -339,7 +346,8 @@
 .review-label {
     font-family: 'Cinzel', serif;
     font-size: 0.8rem;
-    color: #5a4a30;
+    /*color: #5a4a30;*/
+    color:floralwhite;
     text-transform: uppercase;
     letter-spacing: 0.05em;
 }
@@ -347,7 +355,8 @@
 .review-value {
     font-family: 'IM Fell English', Georgia, serif;
     font-size: 0.95rem;
-    color: #2a1f0e;
+    /*color: #2a1f0e;*/
+    color:whitesmoke;
     font-weight: bold;
 }
 

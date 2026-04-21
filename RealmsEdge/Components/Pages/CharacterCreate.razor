@@ -99,7 +99,7 @@
         Class="btn-realm-ghost">
         Back
     </MudButton>
-    <MudButton
+   @*  <MudButton
         Variant="Variant.Filled"
         Color="Color.Secondary"
         EndIcon="@Icons.Material.Filled.AutoAwesome"f
@@ -107,7 +107,7 @@
                                Disabled="@(_busy || _validationResult?.IsValid == false)"
         Class="btn-realm-primary">
         @(_busy ? "Creating..." : "Begin Adventure")
-    </MudButton>
+    </MudButton> *@
 </div>
     </div>
 }
@@ -295,7 +295,7 @@
                                     }
                                 </div>
                             }
-
+                            
                             <div class="stat-total">
                                 Total: @_statRolls
                                     .Sum(r => r.Total)
