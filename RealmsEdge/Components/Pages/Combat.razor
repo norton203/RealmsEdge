@@ -594,7 +594,8 @@ else
 
     private void LeaveCombat()
     {
-        GameManager.TransitionTo(GameState.Exploring);
+        GameManager.Session.EndCombat();
+        GameManager.Session.MarkDirty();
         NavManager.NavigateTo("/world");
     }
 

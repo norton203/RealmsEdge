@@ -504,8 +504,7 @@ namespace RealmsEdge.Shared.Services
                     GameLogType.Combat);
             }
 
-            Session.EndCombat();
-            Session.MarkDirty();
+            
         }
 
         // =====================

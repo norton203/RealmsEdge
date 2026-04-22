@@ -470,15 +470,7 @@ else
 
     private void HandleStateChanged()
     {
-        if (GameManager.CurrentState ==
-                GameState.CombatPlayerTurn ||
-            GameManager.CurrentState ==
-                GameState.CombatStart)
-        {
-            InvokeAsync(() =>
-                NavManager.NavigateTo("/combat"));
-            return;
-        }
+        
         Refresh();
     }
 
