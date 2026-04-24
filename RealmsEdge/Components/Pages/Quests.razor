@@ -1,0 +1,623 @@
+﻿@page "/quests"
+@using RealmsEdge.Shared.Enums
+@using RealmsEdge.Shared.Models.Quests
+@using RealmsEdge.Shared.Services
+@inject GameStateManager GameManager
+@inject NavigationManager NavManager
+
+<div class="quest-shell">
+
+    <!-- Header -->
+    <div class="quest-header">
+        <button class="btn-ghost quest-back"
+                @onclick="GoBack">
+            ← Back
+        </button>
+        <h1 class="quest-title">📜 Quest Journal</h1>
+        <div class="quest-header-right">
+            <span class="quest-count">
+                @_active.Count active
+            </span>
+        </div>
+    </div>
+
+    <div class="quest-body">
+
+        <!-- Left Panel — List -->
+        <div class="quest-list-panel paper-dark">
+
+            <!-- Tabs -->
+            <div class="quest-tabs">
+                <button class="quest-tab
+                        @(_tab == 0 ? "quest-tab-active" : "")"
+                        @onclick="@(() => SelectTab(0))">
+                    ⚔️ Active
+                    @if (_active.Any())
+                    {
+                        <span class="quest-badge">
+                            @_active.Count
+                        </span>
+                    }
+                </button>
+                <button class="quest-tab
+                        @(_tab == 1 ? "quest-tab-active" : "")"
+                        @onclick="@(() => SelectTab(1))">
+                    📋 Available
+                    @if (_available.Any())
+                    {
+                        <span class="quest-badge quest-badge-gold">
+                            @_available.Count
+                        </span>
+                    }
+                </button>
+                <button class="quest-tab
+                        @(_tab == 2 ? "quest-tab-active" : "")"
+                        @onclick="@(() => SelectTab(2))">
+                    ✅ Done
+                    @if (_completed.Any())
+                    {
+                        <span class="quest-badge quest-badge-dim">
+                            @_completed.Count
+                        </span>
+                    }
+                </button>
+            </div>
+
+            <!-- Quest List -->
+            <div class="quest-list">
+                @{
+                    var list = _tab == 0 ? _active
+                    : _tab == 1 ? _available
+                    : _completed;
+                }
+
+                @if (!list.Any())
+                {
+                    <div class="quest-empty">
+                        @if (_tab == 0)
+                        {
+                            <span>
+                                No active quests.<br />
+                                Visit a town to seek adventure.
+                            </span>
+                        }
+                        else if (_tab == 1)
+                        {
+                            <span>
+                                No quests available.<br />
+                                Explore and talk to NPCs.
+                            </span>
+                        }
+                        else
+                        {
+                            <span>
+                                No completed quests yet.<br />
+                                Your legend awaits.
+                            </span>
+                        }
+                    </div>
+                }
+
+                @foreach (var quest in list)
+                {
+                    <div class="quest-item
+                             @(_selected?.Id == quest.Id
+                                                      ? "quest-item-selected" : "")
+                             @(quest.AllRequiredComplete
+                                                      ? "quest-item-ready" : "")"
+                         @onclick="@(() => SelectQuest(quest))">
+
+                        <div class="quest-item-icon">
+                            @GetTypeIcon(quest.Type)
+                        </div>
+                        <div class="quest-item-info">
+                            <div class="quest-item-name">
+                                @quest.Title
+                            </div>
+                            <div class="quest-item-meta">
+                                <span class="quest-type-label">
+                                    @quest.Type
+                                </span>
+                                @if (quest.RequiredLevel > 1)
+                                {
+                                    <span class="quest-level">
+                                        Lv@(quest.RequiredLevel)+
+                                    </span>
+                                }
+                            </div>
+                        </div>
+                        <div class="quest-item-status">
+                            @if (quest.AllRequiredComplete)
+                            {
+                                <span class="status-ready">✅</span>
+                            }
+                            else if (quest.HasTimeLimit)
+                            {
+                                <span class="status-timed">⏳</span>
+                            }
+                            else if (quest.IsRepeatable)
+                            {
+                                <span class="status-repeat">🔄</span>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Right Panel — Detail -->
+        <div class="quest-detail-panel paper-aged">
+            @if (_selected == null)
+            {
+                <div class="quest-no-selection">
+                    <div class="quest-no-selection-icon">📜</div>
+                    <div class="quest-no-selection-text">
+                        Select a quest to view details
+                    </div>
+                </div>
+            }
+            else
+            {
+                <!-- Quest Title Block -->
+                <div class="quest-detail-header">
+                    <div class="quest-detail-type">
+                        @GetTypeIcon(_selected.Type)
+                        @_selected.Type
+                    </div>
+                    <h2 class="quest-detail-title">
+                        @_selected.Title
+                    </h2>
+                    @if (_selected.QuestGiverName != null)
+                    {
+                        <div class="quest-giver">
+                            Given by: @_selected.QuestGiverName
+                        </div>
+                    }
+                </div>
+
+                <!-- Description -->
+                <div class="quest-detail-section">
+                    <p class="quest-description">
+                        @_selected.Description
+                    </p>
+                    @if (_selected.FlavorText != null)
+                    {
+                        <p class="quest-flavor">
+                            "@_selected.FlavorText"
+                        </p>
+                    }
+                </div>
+
+                <!-- Objectives -->
+                @if (_selected.Objectives.Any())
+                {
+                    <div class="quest-detail-section">
+                        <div class="quest-section-title">
+                            Objectives
+                        </div>
+
+                        @foreach (var obj in
+                                        _selected.RequiredObjectives)
+                        {
+                            <div class="quest-objective
+                                             @(obj.IsComplete
+                                                                      ? "obj-complete" : "")
+                                             @(obj.IsFailed
+                                                                      ? "obj-failed" : "")">
+                                <div class="obj-header">
+                                    <span class="obj-check">
+                                        @(obj.IsComplete ? "✅"
+                                                                    : obj.IsFailed ? "❌"
+                                                                    : "◻️")
+                                    </span>
+                                    <span class="obj-desc">
+                                        @obj.Description
+                                    </span>
+                                    @if (obj.RequiredCount > 1)
+                                    {
+                                        <span class="obj-count">
+                                            @obj.ProgressDisplay
+                                        </span>
+                                    }
+                                </div>
+                                @if (obj.RequiredCount > 1 &&
+                                                    !obj.IsComplete)
+                                {
+                                    <div class="obj-bar-track">
+                                        <div class="obj-bar-fill"
+                                             style="width:@(obj.ProgressPercent)%">
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+
+                        @if (_selected.OptionalObjectives.Any())
+                        {
+                            <div class="quest-optional-label">
+                                Optional
+                            </div>
+                            @foreach (var obj in
+                                            _selected.OptionalObjectives)
+                            {
+                                <div class="quest-objective
+                                                     quest-objective-optional
+                                                     @(obj.IsComplete
+                                                                              ? "obj-complete" : "")">
+                                    <div class="obj-header">
+                                        <span class="obj-check">
+                                            @(obj.IsComplete
+                                                                        ? "✅" : "◽️")
+                                        </span>
+                                        <span class="obj-desc">
+                                            @obj.Description
+                                        </span>
+                                        @if (obj.RequiredCount > 1)
+                                        {
+                                            <span class="obj-count">
+                                                @obj.ProgressDisplay
+                                            </span>
+                                        }
+                                    </div>
+                                    @if (obj.RequiredCount > 1 &&
+                                                        !obj.IsComplete)
+                                    {
+                                        <div class="obj-bar-track">
+                                            <div class="obj-bar-fill
+                                                                     obj-bar-optional"
+                                                 style="width:@(obj.ProgressPercent)%">
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        }
+                    </div>
+                }
+
+                <!-- Time Limit -->
+                @if (_selected.HasTimeLimit)
+                {
+                    <div class="quest-detail-section">
+                        <div class="quest-time
+                                     @(_selected.IsExpired
+                                                              ? "quest-time-expired" : "")">
+                            ⏳ @_selected.TimeRemainingDisplay
+                        </div>
+                    </div>
+                }
+
+                <!-- Rewards -->
+                @if (_selected.MainReward != null)
+                {
+                    <div class="quest-detail-section">
+                        <div class="quest-section-title">
+                            Rewards
+                        </div>
+                        <div class="quest-rewards">
+                            @if (_selected.MainReward
+                                                .ExperiencePoints > 0)
+                            {
+                                <div class="reward-pill
+                                                 reward-xp">
+                                    ⭐ @(_selected.MainReward
+                                                            .ExperiencePoints
+                                                            .ToString("N0")) XP
+                                </div>
+                            }
+                            @if (_selected.MainReward
+                                                .GoldReward > 0)
+                            {
+                                <div class="reward-pill
+                                                 reward-gold">
+                                    🪙 @(_selected.MainReward
+                                                            .GoldReward)g
+                                </div>
+                            }
+                            @if (_selected.MainReward
+                                                .SilverReward > 0)
+                            {
+                                <div class="reward-pill
+                                                 reward-gold">
+                                    🪙 @(_selected.MainReward
+                                                            .SilverReward)s
+                                </div>
+                            }
+                            @if (_selected.MainReward
+                                                .ItemRewards.Any())
+                            {
+                                <div class="reward-pill
+                                                 reward-item">
+                                    🎁 @(_selected.MainReward
+                                                            .ItemRewards.Count) item(s)
+                                </div>
+                            }
+                            @if (_selected.MainReward
+                                                .HasItemChoice)
+                            {
+                                <div class="reward-pill
+                                                 reward-item">
+                                    🎁 Item choice
+                                </div>
+                            }
+                            @if (_selected.MainReward
+                                                .HasStatBonuses)
+                            {
+                                <div class="reward-pill
+                                                 reward-stat">
+                                    📊 Stat bonuses
+                                </div>
+                            }
+                            @if (_selected.MainReward
+                                                .UnlocksTitle != null)
+                            {
+                                <div class="reward-pill
+                                                 reward-title">
+                                    👑 @(_selected.MainReward
+                                                            .UnlocksTitle)
+                                </div>
+                            }
+                            @if (_selected.MainReward
+                                                .ReputationChanges.Any())
+                            {
+                                @foreach (var rep in
+                                                    _selected.MainReward
+                                                    .ReputationChanges)
+                                {
+                                    <div class="reward-pill
+                                                         reward-rep">
+                                        🏛️ @rep.Display
+                                    </div>
+                                }
+                            }
+                        </div>
+
+                        @if (_selected.OptionalReward != null)
+                        {
+                            <div class="quest-optional-label">
+                                Bonus (optional objectives)
+                            </div>
+                            <div class="quest-rewards">
+                                <div class="reward-pill reward-dim">
+                                    @_selected.OptionalReward
+                                    .RewardSummary
+                                </div>
+                            </div>
+                        }
+
+                        @if (_selected.FirstTimeReward != null
+                                        && _selected.TimesCompleted == 0)
+                        {
+                            <div class="quest-optional-label">
+                                First completion bonus
+                            </div>
+                            <div class="quest-rewards">
+                                <div class="reward-pill reward-dim">
+                                    🌟 @_selected.FirstTimeReward
+                                    .RewardSummary
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+
+                <!-- Turn In -->
+                @if (_selected.TurnInNpcName != null &&
+                            _selected.AllRequiredComplete)
+                {
+                    <div class="quest-turnin">
+                        📍 Return to
+                        <strong>@_selected.TurnInNpcName</strong>
+                        to complete this quest.
+                    </div>
+                }
+
+                <!-- Feedback -->
+                @if (_feedback != null)
+                {
+                    <div class="quest-feedback
+                                 @(_feedbackError
+                                                      ? "feedback-error"
+                                                      : "feedback-ok")">
+                        @_feedback
+                    </div>
+                }
+
+                <!-- Action Buttons -->
+                <div class="quest-actions">
+                    @if (_tab == 1)
+                    {
+                        <button class="btn-realm"
+                                @onclick="AcceptSelected"
+                                disabled="@_busy">
+                            📜 Accept Quest
+                        </button>
+                    }
+                    @if (_tab == 0 &&
+                                    _selected.AllRequiredComplete)
+                    {
+                        <button class="btn-realm"
+                                @onclick="CompleteSelected"
+                                disabled="@_busy">
+                            ✅ Complete Quest
+                        </button>
+                    }
+                    @if (_tab == 0 &&
+                                    _selected.Type != QuestType.Story &&
+                                    _selected.Type != QuestType.ChapterQuest)
+                    {
+                        <button class="btn-ghost"
+                                @onclick="() => _confirmAbandon = true"
+                                disabled="@_busy">
+                            🚫 Abandon
+                        </button>
+                    }
+                </div>
+
+                <!-- Abandon Confirm -->
+                @if (_confirmAbandon)
+                {
+                    <div class="quest-confirm">
+                        <div class="quest-confirm-text">
+                            ⚠️ Abandon
+                            <strong>@_selected.Title</strong>?
+                            All progress will be lost.
+                        </div>
+                        <div class="quest-confirm-buttons">
+                            <button class="btn-danger"
+                                    @onclick="AbandonSelected">
+                                Yes, Abandon
+                            </button>
+                            <button class="btn-ghost"
+                                    @onclick="() =>
+                                    _confirmAbandon = false">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+                        }
+            }
+        </div>
+
+    </div>
+</div>
+
+@code {
+    private List<Quest> _active = new();
+    private List<Quest> _available = new();
+    private List<Quest> _completed = new();
+    private Quest? _selected;
+    private int _tab = 0;
+    private bool _busy;
+    private string? _feedback;
+    private bool _feedbackError;
+    private bool _confirmAbandon;
+
+    protected override void OnInitialized()
+    {
+        GameManager.OnStateChanged += HandleStateChanged;
+        Refresh();
+    }
+
+    private void Refresh()
+    {
+        _active    = GameManager.GetActiveQuests();
+        _available = GameManager.GetAvailableQuests();
+        _completed = GameManager.GetCompletedQuests();
+
+        // Keep selection valid after refresh
+        if (_selected != null)
+        {
+            var all = _active
+                .Concat(_available)
+                .Concat(_completed);
+            _selected = all.FirstOrDefault(
+                q => q.Id == _selected.Id);
+        }
+    }
+
+    private void SelectTab(int tab)
+    {
+        _tab            = tab;
+        _selected       = null;
+        _feedback       = null;
+        _confirmAbandon = false;
+    }
+
+    private void SelectQuest(Quest quest)
+    {
+        _selected       = quest;
+        _feedback       = null;
+        _confirmAbandon = false;
+    }
+
+    private void AcceptSelected()
+    {
+        if (_selected == null) return;
+        _busy = true;
+        var result = GameManager.AcceptQuest(_selected.Id);
+        _feedback      = result.Message;
+        _feedbackError = !result.Success;
+        if (result.Success)
+        {
+            Refresh();
+            _tab = 0;
+            // Keep the newly accepted quest selected
+            _selected = _active.FirstOrDefault(
+                q => q.Id == _selected?.Id);
+        }
+        _busy = false;
+    }
+
+    private async Task CompleteSelected()
+    {
+        if (_selected == null) return;
+        _busy = true;
+        var result = await GameManager.CompleteQuest(
+            _selected.Id);
+        _feedback      = result.Message;
+        _feedbackError = !result.Success;
+        if (result.Success)
+        {
+            Refresh();
+            _selected = null;
+        }
+        _busy = false;
+    }
+
+    private void AbandonSelected()
+    {
+        if (_selected == null) return;
+        _busy = true;
+        var result = GameManager.AbandonQuest(_selected.Id);
+        _feedback       = result.Message;
+        _feedbackError  = !result.Success;
+        _confirmAbandon = false;
+        if (result.Success)
+        {
+            Refresh();
+            _selected = null;
+        }
+        _busy = false;
+    }
+
+    private void GoBack()
+    {
+        GameManager.TransitionTo(GameState.Exploring);
+        NavManager.NavigateTo("/world");
+    }
+
+    private void HandleStateChanged()
+    {
+        Refresh();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private string GetTypeIcon(QuestType type) =>
+        type switch
+        {
+            QuestType.Kill or
+            QuestType.BossKill or
+            QuestType.Exterminate or
+            QuestType.Bounty => "⚔️",
+            QuestType.Fetch or
+            QuestType.Collect or
+            QuestType.Deliver => "🎒",
+            QuestType.Explore or
+            QuestType.MapArea or
+            QuestType.FindSecret => "🗺️",
+            QuestType.Escort or
+            QuestType.Rescue => "🛡️",
+            QuestType.Story or
+            QuestType.ChapterQuest => "📖",
+            QuestType.Daily => "🌅",
+            QuestType.Weekly => "📅",
+            QuestType.GuildQuest => "🏰",
+            _ => "📜"
+        };
+
+    public void Dispose()
+    {
+        GameManager.OnStateChanged -= HandleStateChanged;
+    }
+}

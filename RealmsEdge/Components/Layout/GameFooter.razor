@@ -75,8 +75,8 @@
 @code {
     private GameSession? _session;
 
-    private bool HasReadyQuests => false;
-    // Will be wired to QuestService later
+    private bool HasReadyQuests =>
+     GameManager.HasReadyToCompleteQuests();
 
     private bool ShowWorldMap =>
         GameManager.CurrentState ==

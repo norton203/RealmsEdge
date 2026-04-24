@@ -1,10 +1,11 @@
 ﻿using RealmsEdge.Shared.Enums;
+using RealmsEdge.Shared.Interfaces;
 using RealmsEdge.Shared.Models;
 using RealmsEdge.Shared.Models.Characters;
 using RealmsEdge.Shared.Models.Combat;
+using RealmsEdge.Shared.Models.Quests;
 using RealmsEdge.Shared.Models.Session;
 using RealmsEdge.Shared.Models.World;
-using RealmsEdge.Shared.Interfaces;
 using PartyModels = RealmsEdge.Shared.Models.Party;
 
 namespace RealmsEdge.Shared.Services
@@ -295,6 +296,9 @@ namespace RealmsEdge.Shared.Services
                     .DescribeCurrentRoom(
                         Session.ActivePlayer!.Id));
         }
+
+
+
 
         public (bool Success, string Message) Search()
         {
@@ -629,26 +633,7 @@ namespace RealmsEdge.Shared.Services
         // Quest Management
         // =====================
 
-        public (bool Success, string Message)
-            AcceptQuest(Guid questId)
-        {
-            if (!Session.HasActivePlayer)
-                return (false, "No active player.");
-
-            var result = _questService.AcceptQuest(
-                questId, Session.ActivePlayer!);
-
-            if (result.Success)
-            {
-                Log(result.Message,
-                    GameLogType.Quest);
-                Notify(result.Message,
-                    NotificationType.Quest);
-                Session.MarkDirty();
-            }
-
-            return result;
-        }
+       
 
         public async Task<QuestUpdateResult>
             CompleteQuest(
@@ -826,6 +811,87 @@ namespace RealmsEdge.Shared.Services
                     NotificationType.Quest);
         }
 
+        // =====================
+        // Quest Wrappers
+        // =====================
+
+        public List<Quest> GetActiveQuests()
+        {
+            if (!HasSession || Session.ActivePlayer == null)
+                return new();
+            return _questService
+                .GetActiveQuestsForPlayer(Session.ActivePlayer);
+        }
+
+        public List<Quest> GetAvailableQuests()
+        {
+            if (!HasSession || Session.ActivePlayer == null)
+                return new();
+            return _questService
+                .GetAvailableQuestsForPlayer(Session.ActivePlayer);
+        }
+
+        public List<Quest> GetCompletedQuests()
+        {
+            if (!HasSession || Session.ActivePlayer == null)
+                return new();
+            return _questService
+                .GetCompletedQuestsForPlayer(Session.ActivePlayer);
+        }
+
+        public (bool Success, string Message) AcceptQuest(
+            Guid questId)
+        {
+            if (!HasSession || Session.ActivePlayer == null)
+                return (false, "No active player.");
+
+            var result = _questService.AcceptQuest(
+                questId, Session.ActivePlayer);
+
+            if (result.Success)
+            {
+                Log($"📜 {result.Message}",
+                    GameLogType.Quest);
+                Notify(result.Message,
+                    NotificationType.Info);
+                Session.MarkDirty();
+                NotifyStateChanged();
+            }
+            return result;
+        }
+
+        public (bool Success, string Message) AbandonQuest(
+            Guid questId)
+        {
+            if (!HasSession || Session.ActivePlayer == null)
+                return (false, "No active player.");
+
+            var result = _questService.AbandonQuest(
+                questId, Session.ActivePlayer);
+
+            if (result.Success)
+            {
+                Log($"🚫 {result.Message}",
+                    GameLogType.Quest);
+                Notify(result.Message,
+                    NotificationType.Warning);
+                Session.MarkDirty();
+                NotifyStateChanged();
+            }
+            return result;
+        }
+
+        public bool HasReadyToCompleteQuests()
+        {
+            if (!HasSession || Session.ActivePlayer == null)
+                return false;
+            return _questService
+                .GetReadyToCompleteQuests(Session.ActivePlayer)
+                .Any();
+        }
+
+
+
         private void Log(
             string message,
             GameLogType type = GameLogType.Info)
@@ -864,4 +930,6 @@ namespace RealmsEdge.Shared.Services
             OnStateChanged?.Invoke();
         }
     }
+
+
 }
