@@ -1,4 +1,84 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<svg width="456" height="456" viewBox="0 0 456 456" version="1.1" xmlns="http://www.w3.org/2000/svg">
-    <rect x="0" y="0" width="456" height="456" fill="#512BD4" />
+<svg width="456" height="456" viewBox="0 0 456 456" version="1.1"
+     xmlns="http://www.w3.org/2000/svg"
+     xmlns:xlink="http://www.w3.org/1999/xlink">
+  <defs>
+    <!-- Stone texture base gradient -->
+    <radialGradient id="stoneBg" cx="50%" cy="40%" r="65%">
+      <stop offset="0%"   stop-color="#2a1f0e"/>
+      <stop offset="60%"  stop-color="#1a1208"/>
+      <stop offset="100%" stop-color="#0d0a04"/>
+    </radialGradient>
+
+    <!-- Subtle stone grain overlay -->
+    <filter id="grain">
+      <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch" result="noise"/>
+      <feColorMatrix type="saturate" values="0" in="noise" result="grayNoise"/>
+      <feBlend in="SourceGraphic" in2="grayNoise" mode="multiply" result="blended"/>
+      <feComposite in="blended" in2="SourceGraphic" operator="in"/>
+    </filter>
+
+    <!-- Gold glow for border -->
+    <radialGradient id="borderGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="60%"  stop-color="#0d0a04" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#8B6914" stop-opacity="0.55"/>
+    </radialGradient>
+
+    <!-- Corner ornament gradient -->
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#F5D98B"/>
+      <stop offset="50%"  stop-color="#C9A84C"/>
+      <stop offset="100%" stop-color="#8B6914"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Base stone background -->
+  <rect x="0" y="0" width="456" height="456" fill="url(#stoneBg)"/>
+
+  <!-- Stone grain texture -->
+  <rect x="0" y="0" width="456" height="456" fill="url(#stoneBg)" filter="url(#grain)" opacity="0.4"/>
+
+  <!-- Vignette / border glow -->
+  <rect x="0" y="0" width="456" height="456" fill="url(#borderGlow)"/>
+
+  <!-- Decorative stone border - outer frame -->
+  <rect x="8" y="8" width="440" height="440"
+        fill="none" stroke="#8B6914" stroke-width="3" opacity="0.7"/>
+  <rect x="14" y="14" width="428" height="428"
+        fill="none" stroke="#C9A84C" stroke-width="1.5" opacity="0.4"/>
+
+  <!-- Corner ornaments - top left -->
+  <g fill="url(#goldGrad)" opacity="0.85">
+    <rect x="8"  y="8"  width="30" height="4"/>
+    <rect x="8"  y="8"  width="4"  height="30"/>
+    <rect x="20" y="20" width="14" height="2"/>
+    <rect x="20" y="20" width="2"  height="14"/>
+  </g>
+  <!-- Corner ornaments - top right -->
+  <g fill="url(#goldGrad)" opacity="0.85">
+    <rect x="418" y="8"  width="30" height="4"/>
+    <rect x="444" y="8"  width="4"  height="30"/>
+    <rect x="422" y="20" width="14" height="2"/>
+    <rect x="434" y="20" width="2"  height="14"/>
+  </g>
+  <!-- Corner ornaments - bottom left -->
+  <g fill="url(#goldGrad)" opacity="0.85">
+    <rect x="8"  y="444" width="30" height="4"/>
+    <rect x="8"  y="418" width="4"  height="30"/>
+    <rect x="20" y="422" width="14" height="2"/>
+    <rect x="20" y="434" width="2"  height="14"/>
+  </g>
+  <!-- Corner ornaments - bottom right -->
+  <g fill="url(#goldGrad)" opacity="0.85">
+    <rect x="418" y="444" width="30" height="4"/>
+    <rect x="444" y="418" width="4"  height="30"/>
+    <rect x="422" y="422" width="14" height="2"/>
+    <rect x="434" y="434" width="2"  height="14"/>
+  </g>
+
+  <!-- Subtle mid-edge ornaments -->
+  <rect x="218" y="8"  width="20" height="3" fill="#C9A84C" opacity="0.5"/>
+  <rect x="218" y="445" width="20" height="3" fill="#C9A84C" opacity="0.5"/>
+  <rect x="8"   y="218" width="3"  height="20" fill="#C9A84C" opacity="0.5"/>
+  <rect x="445" y="218" width="3"  height="20" fill="#C9A84C" opacity="0.5"/>
 </svg>
