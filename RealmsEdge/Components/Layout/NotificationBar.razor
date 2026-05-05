@@ -6,7 +6,11 @@
 @if (_notifications.Any())
 {
     <div class="notification-stack">
-        @foreach (var note in _notifications)
+        @{
+            List<GameNotification> snapshot;
+            lock (_lock) { snapshot = _notifications.ToList(); }
+        }
+        @foreach (var note in snapshot)
         {
             <div class="notification-toast"
                  style="border-left-color:@note.TypeColour">
@@ -18,7 +22,8 @@
 }
 
 @code {
-    private List<GameNotification> _notifications = new();
+    private readonly List<GameNotification> _notifications = new();
+    private readonly object _lock = new();
     private System.Timers.Timer? _cleanupTimer;
 
     protected override void OnInitialized()
@@ -26,30 +31,40 @@
         GameManager.OnNotification += HandleNotification;
 
         _cleanupTimer = new System.Timers.Timer(1000);
-        _cleanupTimer.Elapsed += (_, _) => CleanExpired();
+        _cleanupTimer.Elapsed += OnTimerElapsed;
+        _cleanupTimer.AutoReset = true;
         _cleanupTimer.Start();
     }
 
     private void HandleNotification(GameNotification note)
     {
-        _notifications.Add(note);
+        lock (_lock)
+        {
+            _notifications.Add(note);
+        }
         InvokeAsync(StateHasChanged);
     }
 
-    private void CleanExpired()
+    private void OnTimerElapsed(object? sender, System.Timers.ElapsedEventArgs e)
     {
-        var cutoff = DateTime.UtcNow.AddMilliseconds(
-            -3000);
-        var before = _notifications.Count;
-        _notifications.RemoveAll(n =>
-            n.CreatedAt < cutoff);
-        if (_notifications.Count != before)
+        var cutoff = DateTime.UtcNow.AddMilliseconds(-3000);
+        bool changed;
+
+        lock (_lock)
+        {
+            var before = _notifications.Count;
+            _notifications.RemoveAll(n => n.CreatedAt < cutoff);
+            changed = _notifications.Count != before;
+        }
+
+        if (changed)
             InvokeAsync(StateHasChanged);
     }
 
     public void Dispose()
     {
         GameManager.OnNotification -= HandleNotification;
+        _cleanupTimer?.Stop();
         _cleanupTimer?.Dispose();
     }
 }

@@ -297,8 +297,7 @@
                             }
                             
                             <div class="stat-total">
-                                Total: @_statRolls
-                                    .Sum(r => r.Total)
+                            Total: @(_statRolls.Sum(r => r.Total))
                                 <button class="btn-ghost"
                                         style="margin-left:
                                             1rem"
