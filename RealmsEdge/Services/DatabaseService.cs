@@ -1,9 +1,10 @@
-using SQLite;
-using System.Text.Json;
 using RealmsEdge.Shared.Enums;
 using RealmsEdge.Shared.Interfaces;
 using RealmsEdge.Shared.Models.Characters;
 using RealmsEdge.Shared.Models.Items;
+using RealmsEdge.Shared.Models.Session;
+using SQLite;
+using System.Text.Json;
 
 namespace RealmsEdge.Maui.Services
 {
@@ -76,6 +77,16 @@ namespace RealmsEdge.Maui.Services
         public InventoryItem? Amulet    { get; set; }
     }
 
+    [Table("saves")]
+    public class SaveRow
+    {
+        [PrimaryKey]
+        public int Slot { get; set; }
+        public string DisplayName { get; set; } = string.Empty;
+        public string SavedAt { get; set; } = string.Empty;
+        public string DataJson { get; set; } = string.Empty;
+    }
+
     // =====================
     // DatabaseService
     // =====================
@@ -115,6 +126,7 @@ namespace RealmsEdge.Maui.Services
                 SQLiteOpenFlags.SharedCache);
 
             await _db.CreateTableAsync<CharacterRow>();
+            await _db.CreateTableAsync<SaveRow>();
         }
 
         private SQLiteAsyncConnection Db =>
@@ -277,6 +289,56 @@ namespace RealmsEdge.Maui.Services
             }
 
             return c;
+        }
+
+        // =====================
+        // Save Slots
+        // =====================
+
+        public async Task SaveSessionAsync(SessionSaveData save)
+        {
+            save.SavedAt = DateTime.UtcNow;
+
+            var row = new SaveRow
+            {
+                Slot        = save.SaveSlot,
+                DisplayName = save.DisplayName,
+                SavedAt     = save.SavedAt.ToString("O"),
+                DataJson    = Serialize(save)
+            };
+
+            await Db.InsertOrReplaceAsync(row);
+        }
+
+        public async Task<SessionSaveData?> LoadSessionAsync(int slot)
+        {
+            var row = await Db
+                .Table<SaveRow>()
+                .Where(r => r.Slot == slot)
+                .FirstOrDefaultAsync();
+
+            if (row is null) return null;
+
+            return Deserialize<SessionSaveData>(row.DataJson);
+        }
+
+        public async Task<List<SessionSaveData>> GetAllSaveSlotsAsync()
+        {
+            var rows = await Db
+                .Table<SaveRow>()
+                .OrderBy(r => r.Slot)
+                .ToListAsync();
+
+            return rows
+                .Select(r => Deserialize<SessionSaveData>(r.DataJson))
+                .Where(s => s is not null)
+                .Select(s => s!)
+                .ToList();
+        }
+
+        public async Task DeleteSaveAsync(int slot)
+        {
+            await Db.DeleteAsync<SaveRow>(slot);
         }
 
         // =====================

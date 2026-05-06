@@ -48,6 +48,10 @@
                         ▶ Resume
                     </button>
                     <button class="btn-ghost"
+                            @onclick="GoToSaveLoad">
+                        💾 Save / Load
+                    </button>
+                    <button class="btn-ghost"
                             @onclick="GoToMainMenu">
                         🏰 Main Menu
                     </button>
@@ -125,6 +129,7 @@
             GameState.Travelling => "Travelling...",
             GameState.Loading    => "Loading...",
             GameState.Saving     => "Saving...",
+            GameState.SaveLoad   => "/saveload",
             _                    => "Please wait..."
         };
 
@@ -158,7 +163,11 @@
         GameManager.TransitionTo(GameState.MainMenu);
         NavManager.NavigateTo("/");
     }
-
+    private void GoToSaveLoad()
+    {
+        GameManager.Resume();
+        GameManager.TransitionTo(GameState.SaveLoad);
+    }
     public void Dispose()
     {
         GameManager.OnStateChanged -= HandleStateChanged;

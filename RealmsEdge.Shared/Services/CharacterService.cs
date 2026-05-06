@@ -12,9 +12,9 @@ namespace RealmsEdge.Shared.Services
         // Dependencies
         // =====================
 
-        private readonly DiceService              _diceService;
+        private readonly DiceService _diceService;
         private readonly CharacterValidationService _validationService;
-        private readonly IDatabaseService         _database;
+        private readonly IDatabaseService _database;
 
         // ── Write-through cache ──────────────────────
         // Keeps the rest of the app fast (sync reads)
@@ -109,7 +109,7 @@ namespace RealmsEdge.Shared.Services
 
             return _cache.Values.ToList();
         }
-        
+
         public async Task<List<PlayerCharacter>> GetAllCharactersAsync()
         {
             await EnsureCacheAsync();
@@ -311,7 +311,7 @@ namespace RealmsEdge.Shared.Services
             int copperAmount)
         {
             var from = GetCharacter(fromCharacterId);
-            var to   = GetCharacter(toCharacterId);
+            var to = GetCharacter(toCharacterId);
 
             if (from == null || to == null)
                 return (false, "One or both characters not found.");
@@ -376,6 +376,13 @@ namespace RealmsEdge.Shared.Services
 
             UpdateCharacter(character);
             return $"{character.Name} takes a long rest and is fully restored.";
+        }
+
+
+        public async Task<PlayerCharacter?> GetCharacterAsync(Guid id)
+        {
+            await EnsureCacheAsync();
+            return _cache.TryGetValue(id, out var c) ? c : null;
         }
     }
 }

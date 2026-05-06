@@ -340,6 +340,7 @@ namespace RealmsEdge.Shared.Models.Session
             GameState.Resting => "🏕️ Resting",
             GameState.Paused => "⏸️ Paused",
             GameState.GameOver => "💀 Game Over",
+            GameState.SaveLoad => "💾 Save / Load",
             _ => "🎮 Playing"
         };
 

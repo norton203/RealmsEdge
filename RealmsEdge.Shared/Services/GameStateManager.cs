@@ -25,6 +25,8 @@ namespace RealmsEdge.Shared.Services
         private readonly QuestService _questService;
         private readonly DiceService _diceService;
         private readonly ISoundService _soundService;
+        private readonly IDatabaseService _database;
+        private readonly ISettingsService _settings;
 
         // =====================
         // Session
@@ -55,15 +57,17 @@ namespace RealmsEdge.Shared.Services
         public event Action? OnSessionUpdated;
 
         public GameStateManager(
-            CharacterService characterService,
-            PartyService partyService,
-            WorldService worldService,
-            NavigationService navigationService,
-            CombatService combatService,
-            EncounterService encounterService,
-            QuestService questService,
-            DiceService diceService,
-            ISoundService soundService)
+    CharacterService characterService,
+    PartyService partyService,
+    WorldService worldService,
+    NavigationService navigationService,
+    CombatService combatService,
+    EncounterService encounterService,
+    QuestService questService,
+    DiceService diceService,
+    ISoundService soundService,
+    IDatabaseService database,
+    ISettingsService settings)
         {
             _characterService  = characterService;
             _partyService      = partyService;
@@ -74,6 +78,8 @@ namespace RealmsEdge.Shared.Services
             _questService      = questService;
             _diceService       = diceService;
             _soundService      = soundService;
+            _database          = database;
+            _settings          = settings;
         }
 
         // =====================
@@ -248,7 +254,7 @@ namespace RealmsEdge.Shared.Services
 
             TransitionTo(GameState.Exploring);
             NotifyStateChanged();
-
+            _ = AutoSaveAsync();
             return (true, result.Message);
         }
 
@@ -394,6 +400,7 @@ namespace RealmsEdge.Shared.Services
                     GameState.CombatPlayerTurn);
 
             NotifyStateChanged();
+            _ = AutoSaveAsync();
             return result;
         }
 
@@ -599,6 +606,7 @@ namespace RealmsEdge.Shared.Services
             TransitionTo(GameState.Exploring);
 
             await Task.CompletedTask;
+            _ = AutoSaveAsync();
             return (true, message);
         }
 
@@ -626,6 +634,7 @@ namespace RealmsEdge.Shared.Services
             TransitionTo(GameState.Exploring);
 
             await Task.CompletedTask;
+            _ = AutoSaveAsync();
             return (true, innResult.Message);
         }
 
@@ -675,7 +684,206 @@ namespace RealmsEdge.Shared.Services
             }
 
             NotifyStateChanged();
+            _ = AutoSaveAsync();
             return result;
+        }
+
+
+        // =====================
+        // Save / Load
+        // =====================
+
+        public bool AutoSaveEnabled
+        {
+            get => _settings.AutoSaveEnabled;
+            set => _settings.AutoSaveEnabled = value;
+        }
+
+        public async Task<List<SessionSaveData>> GetSaveSlotsAsync()
+            => await _database.GetAllSaveSlotsAsync();
+
+        public async Task DeleteSaveAsync(int slot)
+            => await _database.DeleteSaveAsync(slot);
+
+        public async Task<(bool Success, string Message)>
+            SaveGameAsync(int slot = 1)
+        {
+            if (!HasSession || Session.ActivePlayer == null)
+                return (false, "No active session to save.");
+
+            try
+            {
+                var player = Session.ActivePlayer;
+                var world = _worldService.GetWorldMap();
+
+                // Build quest progress snapshot
+                var questProgress = new List<QuestProgressEntry>();
+                foreach (var quest in
+                    _questService.GetActiveQuestsForPlayer(player))
+                {
+                    foreach (var obj in quest.Objectives)
+                    {
+                        questProgress.Add(new QuestProgressEntry
+                        {
+                            QuestId      = quest.Id,
+                            ObjectiveId  = obj.Id,
+                            CurrentCount = obj.CurrentCount
+                        });
+                    }
+                }
+
+                var save = new SessionSaveData
+                {
+                    SaveSlot    = slot,
+                    SessionName = Session.SessionName,
+                    DisplayName =
+                        $"{player.Name} — " +
+                        $"Lv{player.Level} " +
+                        $"{player.Race} {player.Class}",
+                    StartedAt   = Session.StartedAt,
+                    TotalPlayTime = Session.TotalPlayTime,
+
+                    ActivePlayerId    = player.Id,
+                    ActivePlayerName  = player.Name,
+                    ActivePlayerLevel = player.Level,
+
+                    ActivePartyId  = Session.ActiveParty?.Id,
+                    PartyMemberIds = Session.ActiveParty?
+                    .Members.Select(m => m.Character.Id).ToList()
+                    ?? new(),
+
+                    CurrentLocationId     = Session.CurrentLocation?.Id
+                        ?? Guid.Empty,
+                    DiscoveredLocationIds = world
+                        .GlobalDiscoveredLocations.ToList(),
+
+                    ActiveQuestIds = player.ActiveQuestIds.ToList(),
+                    QuestProgress  = questProgress,
+
+                    TotalCombatsEntered   = Session.TotalCombatsEntered,
+                    TotalCombatsWon       = Session.TotalCombatsWon,
+                    TotalCombatsLost      = Session.TotalCombatsLost,
+                    TotalCombatsFled      = Session.TotalCombatsFled,
+                    TotalRoomsExplored    = Session.TotalRoomsExplored,
+                    TotalLocationsVisited = Session.TotalLocationsVisited,
+                    TotalNpcsSpokenTo     = Session.TotalNpcsSpokenTo,
+                    TotalItemsLooted      = Session.TotalItemsLooted,
+                    TotalGoldEarned       = Session.TotalGoldEarned,
+                    TotalXpEarned         = Session.TotalXpEarned,
+                    TotalQuestsCompleted  = Session.TotalQuestsCompleted,
+                    TotalDeaths           = Session.TotalDeaths,
+                };
+
+                await _database.SaveSessionAsync(save);
+                Session.MarkSaved();
+                NotifyStateChanged();
+
+                return (true, slot == 0
+                    ? "Game auto-saved."
+                    : $"Game saved to slot {slot}.");
+            }
+            catch (Exception ex)
+            {
+                return (false, $"Save failed: {ex.Message}");
+            }
+        }
+
+        public async Task<(bool Success, string Message)>
+            LoadGameAsync(int slot)
+        {
+            try
+            {
+                var save = await _database.LoadSessionAsync(slot);
+                if (save == null)
+                    return (false, "No save found in that slot.");
+
+                // Load character from DB
+                var player = await _characterService
+                    .GetCharacterAsync(save.ActivePlayerId);
+                if (player == null)
+                    return (false, "Save references a deleted character.");
+
+                // Rebuild session
+                _session = new GameSession
+                {
+                    SessionName           = save.SessionName,
+                    StartedAt             = save.StartedAt,
+                    TotalPlayTime         = save.TotalPlayTime,
+                    ActivePlayer          = player,
+                    TotalCombatsEntered   = save.TotalCombatsEntered,
+                    TotalCombatsWon       = save.TotalCombatsWon,
+                    TotalCombatsLost      = save.TotalCombatsLost,
+                    TotalCombatsFled      = save.TotalCombatsFled,
+                    TotalRoomsExplored    = save.TotalRoomsExplored,
+                    TotalLocationsVisited = save.TotalLocationsVisited,
+                    TotalNpcsSpokenTo     = save.TotalNpcsSpokenTo,
+                    TotalItemsLooted      = save.TotalItemsLooted,
+                    TotalGoldEarned       = save.TotalGoldEarned,
+                    TotalXpEarned         = save.TotalXpEarned,
+                    TotalQuestsCompleted  = save.TotalQuestsCompleted,
+                    TotalDeaths           = save.TotalDeaths,
+                };
+
+                // Restore world state
+                var world = _worldService.GetWorldMap();
+                foreach (var locId in save.DiscoveredLocationIds)
+                    world.DiscoverLocation(locId);
+
+                if (save.CurrentLocationId != Guid.Empty)
+                {
+                    world.SetPlayerLocation(
+                        player.Id, save.CurrentLocationId);
+                    var loc = world.GetLocation(
+                        save.CurrentLocationId);
+                    if (loc != null)
+                        _session.SetLocation(loc);
+                }
+                else
+                {
+                    // Fallback — spawn at start
+                    _worldService.SpawnPlayer(player.Id);
+                    var loc = _worldService
+                        .GetPlayerLocation(player.Id);
+                    if (loc != null)
+                        _session.SetLocation(loc);
+                }
+
+                // Restore quest progress
+                foreach (var questId in save.ActiveQuestIds)
+                {
+                    var quest = _questService.GetQuest(questId);
+                    if (quest == null) continue;
+
+                    quest.Status = QuestStatus.Active;
+
+                    foreach (var entry in save.QuestProgress
+                        .Where(p => p.QuestId == questId))
+                    {
+                        var obj = quest.GetObjective(entry.ObjectiveId);
+                        if (obj != null)
+                            obj.CurrentCount = entry.CurrentCount;
+                    }
+                }
+
+                Session.MarkSaved();
+                Log($"📖 {player.Name}'s adventure continues.",
+                    GameLogType.System);
+
+                TransitionTo(GameState.Exploring);
+                NotifyStateChanged();
+
+                return (true, $"Loaded — welcome back, {player.Name}!");
+            }
+            catch (Exception ex)
+            {
+                return (false, $"Load failed: {ex.Message}");
+            }
+        }
+
+        private async Task AutoSaveAsync()
+        {
+            if (!_settings.AutoSaveEnabled) return;
+            await SaveGameAsync(slot: 0);
         }
 
         // =====================

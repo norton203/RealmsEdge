@@ -35,6 +35,8 @@ namespace RealmsEdge
             // the lifetime of the app.
             builder.Services.AddSingleton<IDatabaseService,
                                           DatabaseService>();
+            builder.Services.AddSingleton<ISettingsService,
+                               SettingsService>();
 
             // ── Singletons ───────────────────────────
             builder.Services.AddSingleton<DiceService>();
@@ -52,6 +54,7 @@ namespace RealmsEdge
             builder.Services.AddScoped<CombatService>();
             builder.Services.AddScoped<QuestService>();
             builder.Services.AddScoped<GameStateManager>();
+           
 
             var app = builder.Build();
 

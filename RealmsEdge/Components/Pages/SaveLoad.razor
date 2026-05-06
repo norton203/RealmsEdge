@@ -1,0 +1,241 @@
+﻿@page "/saveload"
+@using RealmsEdge.Shared.Enums
+@using RealmsEdge.Shared.Models.Session
+@using RealmsEdge.Shared.Services
+@inject GameStateManager GameManager
+@inject NavigationManager NavManager
+@implements IDisposable
+
+<div class="sl-shell">
+
+    <!-- Header -->
+    <div class="sl-header">
+        <button class="btn-ghost sl-back"
+                @onclick="GoBack">
+            ← Back
+        </button>
+        <h1 class="sl-title">💾 Save / Load</h1>
+        <div class="sl-autosave-toggle">
+            <label class="sl-toggle-label">
+                <input type="checkbox"
+                       checked="@GameManager.AutoSaveEnabled"
+                       @onchange="ToggleAutoSave" />
+                Auto-Save
+            </label>
+        </div>
+    </div>
+
+    <!-- Feedback -->
+    @if (_feedback != null)
+    {
+        <div class="sl-feedback @(_feedbackError
+                         ? "sl-feedback-error"
+                         : "sl-feedback-ok")">
+            @_feedback
+        </div>
+    }
+
+    <div class="sl-body">
+
+        <!-- Auto-Save Slot -->
+        <div class="sl-section-label">Auto-Save</div>
+        @{
+            var auto = _slots.FirstOrDefault(
+            s => s.SaveSlot == 0);
+        }
+        <div class="sl-slot sl-slot-auto paper-dark">
+            <div class="sl-slot-info">
+                @if (auto != null)
+                {
+                    <div class="sl-slot-name">
+                        @auto.DisplayName
+                    </div>
+                    <div class="sl-slot-meta">
+                        <span>🕐 @auto.PlayTimeDisplay</span>
+                        <span>📅 @auto.SavedAtDisplay</span>
+                    </div>
+                }
+                else
+                {
+                    <div class="sl-slot-empty">
+                        No auto-save yet
+                    </div>
+                }
+            </div>
+            <div class="sl-slot-actions">
+                <button class="btn-realm"
+                        @onclick="@(() => Load(0))"
+                        disabled="@(auto == null || _busy)">
+                    ▶ Load
+                </button>
+            </div>
+        </div>
+
+        <!-- Manual Save Slots -->
+        <div class="sl-section-label">Save Slots</div>
+
+        @for (var i = 1; i <= 3; i++)
+        {
+            var slot = i;
+            var save = _slots.FirstOrDefault(
+            s => s.SaveSlot == slot);
+            var label = $"Slot {slot}";
+
+            <div class="sl-slot paper-dark
+                    @(_confirmDelete == slot
+                                     ? "sl-slot-confirming" : "")">
+
+                <div class="sl-slot-num">@label</div>
+
+                <div class="sl-slot-info">
+                    @if (save != null)
+                    {
+                        <div class="sl-slot-name">
+                            @save.DisplayName
+                        </div>
+                        <div class="sl-slot-meta">
+                            <span>🕐 @save.PlayTimeDisplay</span>
+                            <span>📅 @save.SavedAtDisplay</span>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="sl-slot-empty">
+                            — Empty —
+                        </div>
+                    }
+                </div>
+
+                @if (_confirmDelete == slot)
+                {
+                    <div class="sl-confirm">
+                        <span class="sl-confirm-text">
+                            Delete this save?
+                        </span>
+                        <button class="btn-danger"
+                                @onclick="@(() => ConfirmDelete(slot))">
+                            Yes
+                        </button>
+                        <button class="btn-ghost"
+                                @onclick="@(() => _confirmDelete = null)">
+                            No
+                        </button>
+                    </div>
+                }
+                else
+                {
+                    <div class="sl-slot-actions">
+                        @if (GameManager.HasSession)
+                        {
+                            <button class="btn-realm"
+                                    @onclick="@(() => Save(slot))"
+                                    disabled="@_busy">
+                                💾 Save
+                            </button>
+                        }
+                        <button class="btn-ghost"
+                                @onclick="@(() => Load(slot))"
+                                disabled="@(save == null || _busy)">
+                            ▶ Load
+                        </button>
+                        @if (save != null)
+                        {
+                            <button class="btn-danger-sm"
+                                    @onclick="@(() =>
+                                    _confirmDelete = slot)"
+                        disabled="@_busy">
+                    🗑
+                </button>
+                                }
+            </div>
+                        }
+        </div>
+                }
+    </div>
+</div>
+
+@code {
+    private List<SessionSaveData> _slots = new();
+    private bool _busy;
+    private string? _feedback;
+    private bool _feedbackError;
+    private int? _confirmDelete;
+
+    protected override async Task OnInitializedAsync()
+    {
+        GameManager.OnStateChanged += HandleStateChanged;
+        await RefreshSlots();
+    }
+
+    private async Task RefreshSlots()
+        => _slots = await GameManager.GetSaveSlotsAsync();
+
+    private async Task Save(int slot)
+    {
+        _busy     = true;
+        _feedback = null;
+        StateHasChanged();
+
+        var result = await GameManager.SaveGameAsync(slot);
+        _feedback      = result.Message;
+        _feedbackError = !result.Success;
+
+        await RefreshSlots();
+        _busy = false;
+        StateHasChanged();
+    }
+
+    private async Task Load(int slot)
+    {
+        _busy     = true;
+        _feedback = null;
+        StateHasChanged();
+
+        var result = await GameManager.LoadGameAsync(slot);
+        _feedbackError = !result.Success;
+
+        if (result.Success)
+        {
+            // GameStateManager transitions to Exploring —
+            // MainLayout routing handles navigation
+            return;
+        }
+
+        _feedback = result.Message;
+        _busy     = false;
+        StateHasChanged();
+    }
+
+    private async Task ConfirmDelete(int slot)
+    {
+        _confirmDelete = null;
+        await GameManager.DeleteSaveAsync(slot);
+        await RefreshSlots();
+        StateHasChanged();
+    }
+
+    private void ToggleAutoSave(ChangeEventArgs e)
+    {
+        if (e.Value is bool val)
+            GameManager.AutoSaveEnabled = val;
+    }
+
+    private void GoBack()
+    {
+        if (GameManager.HasSession)
+        {
+            GameManager.TransitionTo(GameState.Exploring);
+            NavManager.NavigateTo("/world");
+        }
+        else
+        {
+            NavManager.NavigateTo("/");
+        }
+    }
+
+    private void HandleStateChanged()
+        => InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+        => GameManager.OnStateChanged -= HandleStateChanged;
+}

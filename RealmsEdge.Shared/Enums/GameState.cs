@@ -72,6 +72,11 @@
 
         GameOver,           // Character died permanently
         Victory,            // Game completed
-        Paused              // Game paused
+        Paused,             // Game paused
+
+        // =====================
+        // Save / Load Screen
+        // =====================
+        SaveLoad
     }
 }

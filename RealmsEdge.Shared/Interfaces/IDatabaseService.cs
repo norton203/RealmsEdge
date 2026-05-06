@@ -1,23 +1,14 @@
 using RealmsEdge.Shared.Models.Characters;
+using RealmsEdge.Shared.Models.Session;
 
 namespace RealmsEdge.Shared.Interfaces
 {
-    /// <summary>
-    /// Persistence contract for character storage.
-    /// Lives in Shared so CharacterService can depend on it
-    /// without referencing any MAUI-specific types.
-    /// The concrete implementation (SQLite) lives in the MAUI project.
-    /// </summary>
     public interface IDatabaseService
     {
         // =====================
         // Initialisation
         // =====================
 
-        /// <summary>
-        /// Creates the database and tables if they do not exist.
-        /// Must be called once at startup before any other method.
-        /// </summary>
         Task InitialiseAsync();
 
         // =====================
@@ -25,16 +16,34 @@ namespace RealmsEdge.Shared.Interfaces
         // =====================
 
         Task<List<PlayerCharacter>> GetAllCharactersAsync();
-
         Task<PlayerCharacter?> GetCharacterAsync(Guid id);
+        Task SaveCharacterAsync(PlayerCharacter character);
+        Task DeleteCharacterAsync(Guid id);
+        Task<bool> CharacterExistsAsync(Guid id);
+
+        // =====================
+        // Save Slots
+        // =====================
 
         /// <summary>
-        /// Insert or replace — handles both create and update.
+        /// Inserts or replaces the save in the given slot.
+        /// Slot 0 is reserved for auto-save.
         /// </summary>
-        Task SaveCharacterAsync(PlayerCharacter character);
+        Task SaveSessionAsync(SessionSaveData save);
 
-        Task DeleteCharacterAsync(Guid id);
+        /// <summary>
+        /// Returns null if the slot is empty.
+        /// </summary>
+        Task<SessionSaveData?> LoadSessionAsync(int slot);
 
-        Task<bool> CharacterExistsAsync(Guid id);
+        /// <summary>
+        /// Returns all occupied slots ordered by slot number.
+        /// </summary>
+        Task<List<SessionSaveData>> GetAllSaveSlotsAsync();
+
+        /// <summary>
+        /// Clears a save slot. Safe to call on an empty slot.
+        /// </summary>
+        Task DeleteSaveAsync(int slot);
     }
 }
