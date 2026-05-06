@@ -834,16 +834,16 @@
 
         if (result.Success)
         {
-            GameManager.TransitionTo(
-                GameState.Exploring);
+            return;
         }
         else
         {
             _validationErrors.Add(result.Message);
             _isCreating = false;
+            StateHasChanged();
         }
 
-        StateHasChanged();
+       
     }
 
     // =====================

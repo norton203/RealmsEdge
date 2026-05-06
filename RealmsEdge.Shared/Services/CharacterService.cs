@@ -80,6 +80,7 @@ namespace RealmsEdge.Shared.Services
 
             // Write-through: cache + database
             _cache[character.Id] = character;
+            _cacheLoaded = true;
 
             // Fire-and-forget is safe here — the cache
             // is the source of truth until the app restarts
