@@ -224,7 +224,80 @@ else
             <!-- Right — Actions ── -->
             <div class="combat-right">
 
-                @if (_resultMessage != null)
+               @if (_resultMessage != null)
+{
+    <div class="combat-result-panel
+        @(_isVictory ? "result-victory" : "result-defeat")">
+
+        <div class="result-icon">
+            @(_isVictory ? "🏆" : "💀")
+        </div>
+
+        <div class="result-title">
+            @(_isVictory ? "Victory!" : "Defeated!")
+        </div>
+
+        <div class="result-msg">
+            @_resultMessage
+        </div>
+
+        @if (_isVictory)
+        {
+            <!-- Rewards -->
+            <div class="result-rewards">
+
+                @if (_xpAwarded > 0)
+                {
+                    <div class="result-reward-row result-xp">
+                        <span>✨</span>
+                        <span>+@_xpAwarded XP</span>
+                    </div>
+                }
+
+                @if (_goldAwarded > 0)
+                {
+                    <div class="result-reward-row result-gold">
+                        <span>💰</span>
+                        <span>+@_goldAwarded gold</span>
+                    </div>
+                }
+
+                @if (_lootDrops.Any())
+                {
+                    <div class="result-loot-title">
+                        🎁 Items Found
+                    </div>
+                    @foreach (var item in _lootDrops)
+                    {
+                        <div class="result-loot-item
+                            rarity-@item.Rarity.ToString()
+                                        .ToLower()">
+                            <span class="loot-item-name">
+                                @item.Name
+                            </span>
+                            <span class="loot-item-rarity">
+                                @item.Rarity
+                            </span>
+                        </div>
+                    }
+                }
+                else if (_isVictory)
+                {
+                    <div class="result-no-loot">
+                        No items dropped.
+                    </div>
+                }
+
+            </div>
+        }
+
+        <button class="btn-realm result-btn"
+                @onclick="LeaveCombat">
+            Continue →
+        </button>
+
+    </div>
+}
                 {
                     <!-- Combat Over -->
                     <div class="combat-result-panel
@@ -438,7 +511,7 @@ else
     private bool        _isVictory;
     private long        _xpAwarded;
     private int         _goldAwarded;
-
+    private List<InventoryItem> _lootDrops = new();
     // Running stats for top bar
     private int _hits;
     private int _crits;
@@ -544,6 +617,7 @@ else
         _xpAwarded    = result.TotalXpAwarded;
         _goldAwarded  = result.TotalGoldAwarded;
         _resultMessage = result.Message;
+        _lootDrops     = result.LootDrops;
     }
 
     // ── Actions ───────────────────────────────────

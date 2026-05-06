@@ -1,5 +1,6 @@
 ﻿using RealmsEdge.Shared.Enums;
 using RealmsEdge.Shared.Models.Characters;
+using RealmsEdge.Shared.Models.Items;
 using RealmsEdge.Shared.Services;
 
 namespace RealmsEdge.Shared.Models.Combat
@@ -29,6 +30,8 @@ namespace RealmsEdge.Shared.Models.Combat
         public int TotalRounds { get; set; }
         public List<string> Casualties { get; set; } = new();
         public SoundEffect? SoundToPlay { get; set; }
+        public List<InventoryItem> LootDrops { get; set; } = new();
+        public bool HasLoot => LootDrops.Any();
 
         public string OutcomeDisplay => Outcome switch
         {

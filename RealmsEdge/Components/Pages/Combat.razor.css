@@ -593,3 +593,103 @@
     .combat-error span {
         font-size: 3rem;
     }
+/* ── Rewards ── */
+.result-rewards {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    width: 100%;
+    padding: 0.5rem 0;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.result-reward-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: var(--font-title);
+    font-size: 0.9rem;
+    padding: 0 0.25rem;
+}
+
+.result-xp {
+    color: #88ffcc;
+}
+
+.result-gold {
+    color: var(--gold-bright);
+}
+
+/* ── Loot Drops ── */
+.result-loot-title {
+    font-family: var(--font-title);
+    font-size: 0.68rem;
+    color: var(--parchment-dark);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-top: 0.25rem;
+}
+
+.result-loot-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.75rem;
+    padding: 0.2rem 0.4rem;
+    border-radius: var(--radius-sm);
+    border-left: 3px solid currentColor;
+}
+
+.loot-item-name {
+    color: var(--parchment-light);
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.loot-item-rarity {
+    font-size: 0.65rem;
+    opacity: 0.7;
+    margin-left: 0.5rem;
+    flex-shrink: 0;
+}
+
+/* Rarity colours */
+.rarity-common {
+    color: #aaaaaa;
+    background: rgba(170,170,170,0.05);
+}
+
+.rarity-uncommon {
+    color: #44cc44;
+    background: rgba(68,204,68,0.05);
+}
+
+.rarity-rare {
+    color: #4488ff;
+    background: rgba(68,136,255,0.05);
+}
+
+.rarity-epic {
+    color: #aa44ff;
+    background: rgba(170,68,255,0.05);
+}
+
+.rarity-legendary {
+    color: #ff8800;
+    background: rgba(255,136,0,0.05);
+}
+
+.rarity-artifact {
+    color: #ff2244;
+    background: rgba(255,34,68,0.05);
+}
+
+.result-no-loot {
+    font-size: 0.72rem;
+    color: var(--parchment-dark);
+    font-style: italic;
+    text-align: center;
+}

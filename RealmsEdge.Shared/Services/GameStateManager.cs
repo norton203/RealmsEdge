@@ -441,81 +441,132 @@ namespace RealmsEdge.Shared.Services
         }
 
         private async Task HandleCombatEnd(
-            CombatResult result)
+    CombatResult result)
         {
             if (result.Outcome == CombatPhase.Victory)
             {
                 Session.TotalCombatsWon++;
                 TransitionTo(GameState.CombatVictory);
 
-                // Notify quest system of kills
-                if (Session.ActiveCombat != null)
+                if (Session.ActivePlayer != null &&
+                    Session.ActiveCombat != null)
                 {
-                    foreach (var enemy in
-                        Session.ActiveCombat
-                            .EnemyCombatants)
-                    {
-                        if (!enemy.IsAlive)
-                        {
-                            var npc = enemy.Character
-                                as NpcCharacter;
-                            if (npc != null &&
-                                Session.ActivePlayer
-                                    != null)
-                            {
-                                var questResult =
-                                    _questService
-                                        .NotifyKill(
-                                            Session
-                                                .ActivePlayer,
-                                            npc.Race,
-                                            npc.Class,
-                                            npc.Name,
-                                            npc.IsBoss);
+                    var player = Session.ActivePlayer;
+                    var enemies = Session.ActiveCombat
+                        .EnemyCombatants
+                        .Where(e => !e.IsAlive)
+                        .Select(e => e.Character as NpcCharacter)
+                        .Where(e => e != null)
+                        .Select(e => e!)
+                        .ToList();
 
-                                ProcessQuestResult(
-                                    questResult);
-                            }
-                        }
+                    // =====================
+                    // Notify Quest System
+                    // =====================
+
+                    foreach (var enemy in enemies)
+                    {
+                        var questResult = _questService.NotifyKill(
+                            player,
+                            enemy.Race,
+                            enemy.Class,
+                            enemy.Name,
+                            enemy.IsBoss);
+
+                        ProcessQuestResult(questResult);
                     }
+
+                    // =====================
+                    // Apply XP
+                    // =====================
+
+                    if (result.TotalXpAwarded > 0)
+                    {
+                        player.AddExperience(result.TotalXpAwarded);
+                        Session.TotalXpEarned += result.TotalXpAwarded;
+                        Log($"✨ {player.Name} gains " +
+                            $"{result.TotalXpAwarded:N0} XP.",
+                            GameLogType.Combat);
+                    }
+
+                    // =====================
+                    // Apply Gold
+                    // =====================
+
+                    if (result.TotalGoldAwarded > 0)
+                    {
+                        player.AddCurrency(
+                            result.TotalGoldAwarded, 0, 0);
+                        Session.TotalGoldEarned +=
+                            result.TotalGoldAwarded;
+                        Log($"💰 Found {result.TotalGoldAwarded}g.",
+                            GameLogType.Combat);
+                    }
+
+                    // =====================
+                    // Roll Item Drops
+                    // =====================
+
+                    var loot = LootRoller.Roll(enemies);
+
+                    if (loot.Gold > 0 || loot.Silver > 0 ||
+                        loot.Copper > 0)
+                    {
+                        player.AddCurrency(
+                            loot.Gold, loot.Silver, loot.Copper);
+                        Session.TotalGoldEarned += loot.Gold;
+                        Log($"💰 Looted {loot.CurrencyDisplay}.",
+                            GameLogType.Combat);
+                    }
+
+                    foreach (var item in loot.Items)
+                    {
+                        var added = player.AddItem(item);
+                        result.LootDrops.Add(item);
+                        Session.TotalItemsLooted++;
+                        Log(added
+                            ? $"🎁 {player.Name} picks up " +
+                              $"{item.Name}."
+                            : $"⚠️ Inventory full — " +
+                              $"{item.Name} left behind.",
+                            GameLogType.Combat);
+                    }
+
+                    // =====================
+                    // Persist & Level Up
+                    // =====================
+
+                    _characterService.UpdateCharacter(player);
+
+                    if (player.IsReadyToLevelUp)
+                        await HandleLevelUp();
                 }
 
                 Notify("Victory!",
                     NotificationType.Success);
-                Log(
-                    $"🏆 {result.Message}",
+                Log($"🏆 {result.Message}",
                     GameLogType.Combat);
-
                 await PlaySound(SoundEffect.LevelUp);
+                _ = AutoSaveAsync();
             }
-            else if (result.Outcome ==
-                     CombatPhase.Defeat)
+            else if (result.Outcome == CombatPhase.Defeat)
             {
                 Session.TotalCombatsLost++;
                 Session.TotalDeaths++;
                 TransitionTo(GameState.CombatDefeat);
-
                 Notify("Defeated...",
                     NotificationType.Danger);
-                Log(
-                    $"💀 {result.Message}",
+                Log($"💀 {result.Message}",
                     GameLogType.Combat);
-
-                await PlaySound(
-                    SoundEffect.CombatDeath);
+                await PlaySound(SoundEffect.CombatDeath);
             }
-            else if (result.Outcome ==
-                     CombatPhase.Fled)
+            else if (result.Outcome == CombatPhase.Fled)
             {
                 Session.TotalCombatsFled++;
                 TransitionTo(GameState.CombatFled);
-
-                Log(
-                    $"🏃 {result.Message}",
+                Log($"🏃 {result.Message}",
                     GameLogType.Combat);
             }
-
-            
         }
 
         // =====================

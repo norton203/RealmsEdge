@@ -82,13 +82,15 @@
         GameManager.HasSession &&
         GameManager.CurrentState != GameState.MainMenu &&
         GameManager.CurrentState != GameState.CharacterCreate &&
-        GameManager.CurrentState != GameState.CharacterSelect;
+        GameManager.CurrentState != GameState.CharacterSelect &&
+        GameManager.CurrentState != GameState.SaveLoad;
 
     private bool ShowFooter =>
         GameManager.HasSession &&
         GameManager.CurrentState != GameState.MainMenu &&
         GameManager.CurrentState != GameState.CharacterCreate &&
-        GameManager.CurrentState != GameState.CharacterSelect;
+        GameManager.CurrentState != GameState.CharacterSelect &&
+        GameManager.CurrentState != GameState.SaveLoad;
 
     private bool IsFullscreen =>
         GameManager.CurrentState == GameState.CombatPlayerTurn ||
@@ -100,7 +102,8 @@
         {
             GameState.MainMenu or
             GameState.CharacterCreate or
-            GameState.CharacterSelect => "bg-menu",
+            GameState.CharacterSelect or 
+            GameState.SaveLoad => "bg-menu",
             GameState.CombatPlayerTurn or
             GameState.CombatEnemyTurn or
             GameState.CombatStart => "bg-combat",
@@ -143,6 +146,7 @@
             GameState.CombatPlayerTurn or
             GameState.CombatStart      => "/combat",
             GameState.QuestJournal     => "/quests",
+            GameState.SaveLoad =>         "/saveload",
             _                          => null
         };
 

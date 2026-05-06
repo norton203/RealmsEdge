@@ -35,7 +35,7 @@
 
         <button class="menu-btn"
                 @onclick="ContinueGame"
-                disabled="@(!HasSavedGame)">
+                disabled="@(!_hasSavedGame)">
             <span class="menu-btn-icon">📖</span>
             <span class="menu-btn-text">Continue</span>
             <span class="menu-btn-arrow">›</span>
@@ -123,7 +123,15 @@
 @code {
     private bool _showDice    = false;
     private bool _showCredits = false;
-    private bool HasSavedGame => false;
+    
+    private bool _hasSavedGame;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var slots = await GameManager.GetSaveSlotsAsync();
+        _hasSavedGame = slots.Any();
+        StateHasChanged();
+    }
 
     private void NewGame()
     {
@@ -134,7 +142,7 @@
     private void ContinueGame()
     {
         GameManager.TransitionTo(GameState.CharacterSelect);
-        NavManager.NavigateTo("/select");
+        NavManager.NavigateTo("/saveload");
     }
 
     private void SelectCharacter()
