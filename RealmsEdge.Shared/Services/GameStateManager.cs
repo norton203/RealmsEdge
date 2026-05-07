@@ -538,7 +538,7 @@ namespace RealmsEdge.Shared.Services
 
                     _characterService.UpdateCharacter(player);
 
-                    if (player.IsReadyToLevelUp)
+                    if (player.CanLevelUp)
                         await HandleLevelUp();
                 }
 
